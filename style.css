@@ -1,0 +1,27 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: #f4f4f9;
+}
+.contenedor-principal {
+    display: flex; /* Esto divide la pantalla en dos columnas */
+    height: 100vh;
+}
+.panel-datos {
+    width: 30%;
+    padding: 20px;
+    background-color: #ffffff;
+    border-right: 2px solid #ccc;
+}
+.panel-dibujo {
+    width: 70%;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+canvas {
+    background-color: #e5e7eb; /* Color de fondo simulando el área de trabajo */
+    border: 1px solid #333;
+    box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+}
