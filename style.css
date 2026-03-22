@@ -25,3 +25,102 @@ canvas {
     border: 1px solid #333;
     box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
 }
+/* ESTILOS DEL PANEL DE DATOS (NUEVOS) */
+.seccion-bloque {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+.seccion-bloque h3 {
+    margin-top: 0;
+    font-size: 14px;
+    color: #475569;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 8px;
+}
+.btn-importar, .btn-guardar {
+    width: 100%;
+    padding: 12px;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.btn-guardar {
+    background-color: #10b981; /* Verde para guardar */
+}
+.btn-importar:hover, .btn-guardar:hover {
+    opacity: 0.9;
+}
+.fila-input {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+.fila-input label {
+    color: #334155;
+    font-weight: bold;
+}
+.fila-input select, .fila-input input {
+    padding: 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    width: 120px;
+}
+.input-grupo {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.input-grupo input {
+    width: 80px;
+}
+
+/* Tabla de Aceros */
+.tabla-aceros {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: center;
+}
+.tabla-aceros th {
+    background-color: #e2e8f0;
+    padding: 8px;
+}
+.tabla-aceros td {
+    border-bottom: 1px solid #e2e8f0;
+    padding: 6px;
+}
+.fila-ejemplo {
+    color: #94a3b8; /* Gris claro para los datos falsos */
+    font-style: italic;
+}
+
+/* Resultados Dashboard */
+.caja-resultados {
+    background-color: #1e293b; /* Fondo oscuro */
+    color: white;
+}
+.caja-resultados h3 {
+    color: #cbd5e1;
+    border-bottom-color: #334155;
+}
+.resultado-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+.destacado {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px dashed #475569;
+    font-size: 18px;
+    color: #34d399; /* Verde resaltado para el ratio */
+}

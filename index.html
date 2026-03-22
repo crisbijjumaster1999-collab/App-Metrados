@@ -10,9 +10,90 @@
 
     <div class="contenedor-principal">
         <div class="panel-datos">
-            <h2>Datos de la Sección</h2>
-            <p>Aquí irá la tabla con las coordenadas y aceros extraídos de AutoCAD.</p>
-            <button>Importar Datos (Próximamente)</button>
+            <h2>Control de Metrado</h2>
+            
+            <div class="seccion-bloque">
+                <button class="btn-importar">📂 Importar Datos de AutoCAD (.csv)</button>
+            </div>
+
+            <div class="seccion-bloque">
+                <h3>Variables del Elemento</h3>
+                
+                <div class="fila-input">
+                    <label>Tipo de Elemento:</label>
+                    <select id="tipoElemento">
+                        <option value="columna">Columna</option>
+                        <option value="placa" selected>Placa</option>
+                    </select>
+                </div>
+
+                <div class="fila-input">
+                    <label>Altura Total (H):</label>
+                    <div class="input-grupo">
+                        <input type="number" id="alturaTotal" value="3.00" step="0.05">
+                        <span>m</span>
+                    </div>
+                </div>
+
+                <div class="fila-input">
+                    <label>Deducción (Viga/Losa):</label>
+                    <div class="input-grupo">
+                        <input type="number" id="deduccion" value="0.20" step="0.05">
+                        <span>m</span>
+                    </div>
+                </div>
+
+                <div class="fila-input">
+                    <label>Resistencia (f'c):</label>
+                    <select id="resistenciaConcreto">
+                        <option value="210">210 kg/cm²</option>
+                        <option value="280" selected>280 kg/cm²</option>
+                        <option value="350">350 kg/cm²</option>
+                        <option value="420">420 kg/cm²</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="seccion-bloque">
+                <h3>Despiece de Acero</h3>
+                <table class="tabla-aceros">
+                    <thead>
+                        <tr>
+                            <th>Cant.</th>
+                            <th>Ø</th>
+                            <th>Long. (m)</th>
+                            <th>Peso (kg)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="fila-ejemplo"><td>6</td><td>3/4"</td><td>3.65</td><td>49.06</td></tr>
+                        <tr class="fila-ejemplo"><td>10</td><td>5/8"</td><td>3.65</td><td>56.58</td></tr>
+                        <tr class="fila-ejemplo"><td>42</td><td>3/8"</td><td>1.15</td><td>27.05</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="seccion-bloque caja-resultados">
+                <h3>Resumen Final</h3>
+                <div class="resultado-item">
+                    <span>Volumen Concreto:</span>
+                    <strong><span id="res-concreto">0.00</span> m³</strong>
+                </div>
+                <div class="resultado-item">
+                    <span>Área Encofrado:</span>
+                    <strong><span id="res-encofrado">0.00</span> m²</strong>
+                </div>
+                <div class="resultado-item">
+                    <span>Peso Acero:</span>
+                    <strong><span id="res-acero">0.00</span> kg</strong>
+                </div>
+                <div class="resultado-item destacado">
+                    <span>Ratio (Cuantía):</span>
+                    <strong><span id="res-ratio">0.00</span> kg/m³</strong>
+                </div>
+            </div>
+            
+            <button class="btn-guardar">💾 Guardar Metrado en Base de Datos</button>
         </div>
 
         <div class="panel-dibujo">
