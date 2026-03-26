@@ -4,7 +4,7 @@
 const canvas = document.getElementById("planoColumna");
 const ctx = canvas.getContext("2d");
 
-// Base de datos Editable por el usuario (desde el Modal)
+// Base de datos Editable por el usuario
 let configAceros = {
     '6 mm': { peso: 0.22, empalme: 0.30 },
     '8 mm': { peso: 0.40, empalme: 0.30 },
@@ -18,10 +18,7 @@ let configAceros = {
     '1 3/8"': { peso: 7.907, empalme: 1.55 }
 };
 
-// Datos crudos de AutoCAD
 let dbAutoCAD = { seccion: { perimetro: 0, area: 0, coords: [] }, aceroLong: { etiquetas: [], coords: [] }, estribos: { polilineas: [], etiquetas: [] }, ganchos: { polilineas: [], etiquetas: [] }, mallaTrans: { polilineas: [], etiquetas: [] }, mallaVert: { polilineas: [], etiquetas: [] } };
-
-// Filas de la tabla interactiva
 let filasTabla = []; 
 
 // ==========================================
@@ -41,24 +38,21 @@ function abrirModalConfig() {
     document.getElementById("modalConfig").style.display = "flex";
 }
 
-// Reemplaza esta función en la sección 2 de tu script.js
 function cerrarModalConfig(guardarCambios) {
     if (guardarCambios) {
-        // Si el usuario presionó "Guardar y Recalcular"
         for (const diam of Object.keys(configAceros)) {
             let p = parseFloat(document.getElementById(`peso_${diam}`).value);
             let e = parseFloat(document.getElementById(`emp_${diam}`).value);
             if(!isNaN(p)) configAceros[diam].peso = p;
             if(!isNaN(e)) configAceros[diam].empalme = e;
         }
-        renderizarTabla(); // Recalcula todo con los nuevos pesos
+        renderizarTabla();
     }
-    // Ocultar modal (se ejecuta tanto si guarda como si presiona la "X")
     document.getElementById("modalConfig").style.display = "none";
 }
 
 // ==========================================
-// 3. LECTOR CSV Y EXTRACCIÓN
+// 3. LECTOR CSV Y EXTRACCIÓN CON COORDENADAS
 // ==========================================
 document.getElementById('csvFileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
@@ -84,28 +78,30 @@ function procesarCSV(csv) {
             dbAutoCAD.seccion.perimetro = parseFloat(valor1); dbAutoCAD.seccion.area = parseFloat(valor2); dbAutoCAD.seccion.coords = parsearCoordenadas(coordsExtra);
         }
         else if (capa.includes("LONGITUDINAL")) {
-            if (tipoObj === "ETIQUETA") dbAutoCAD.aceroLong.etiquetas.push(valor1);
+            // Guardamos el texto y sus coordenadas
+            if (tipoObj === "ETIQUETA") dbAutoCAD.aceroLong.etiquetas.push({ x: x, y: y, texto: valor1 });
             if (tipoObj === "VARILLA") dbAutoCAD.aceroLong.coords.push({x, y});
         }
         else if (capa.includes("ESTRIBOS")) {
-            if (tipoObj === "POLILINEA") dbAutoCAD.estribos.polilineas.push({long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra)});
-            if (tipoObj === "ETIQUETA") dbAutoCAD.estribos.etiquetas.push(valor1);
+            // ¡NUEVO! Guardamos la coordenada (x,y) de cada polilínea y etiqueta para medir distancias luego
+            if (tipoObj === "POLILINEA") dbAutoCAD.estribos.polilineas.push({ x: x, y: y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra) });
+            if (tipoObj === "ETIQUETA") dbAutoCAD.estribos.etiquetas.push({ x: x, y: y, texto: valor1 });
         }
         else if (capa.includes("GANCHOS")) {
-            if (tipoObj === "POLILINEA") dbAutoCAD.ganchos.polilineas.push({long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra)});
-            if (tipoObj === "ETIQUETA") dbAutoCAD.ganchos.etiquetas.push(valor1);
+            if (tipoObj === "POLILINEA") dbAutoCAD.ganchos.polilineas.push({ x: x, y: y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra) });
+            if (tipoObj === "ETIQUETA") dbAutoCAD.ganchos.etiquetas.push({ x: x, y: y, texto: valor1 });
         }
         else if (capa.includes("MALLA TRANS")) {
-            if (tipoObj === "POLILINEA") dbAutoCAD.mallaTrans.polilineas.push({long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra)});
-            if (tipoObj === "ETIQUETA") dbAutoCAD.mallaTrans.etiquetas.push(valor1);
+            if (tipoObj === "POLILINEA") dbAutoCAD.mallaTrans.polilineas.push({ x: x, y: y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra) });
+            if (tipoObj === "ETIQUETA") dbAutoCAD.mallaTrans.etiquetas.push({ x: x, y: y, texto: valor1 });
         }
         else if (capa.includes("MALLA VERT")) {
-            if (tipoObj === "POLILINEA") dbAutoCAD.mallaVert.polilineas.push({long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra)});
-            if (tipoObj === "ETIQUETA") dbAutoCAD.mallaVert.etiquetas.push(valor1);
+            if (tipoObj === "POLILINEA") dbAutoCAD.mallaVert.polilineas.push({ x: x, y: y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra) });
+            if (tipoObj === "ETIQUETA") dbAutoCAD.mallaVert.etiquetas.push({ x: x, y: y, texto: valor1 });
         }
     }
     dibujarEnCanvas();
-    generarFilasEstructurales(); // Crea la estructura base para la tabla
+    generarFilasEstructurales(); 
 }
 
 function parsearCoordenadas(str) {
@@ -115,6 +111,7 @@ function parsearCoordenadas(str) {
 }
 
 function decodificarEtiqueta(texto, esLongitudinal) {
+    if (!texto) return { cant: 0, diam: "-", espac: 0 };
     texto = texto.trim();
     if (esLongitudinal) {
         let partes = texto.split("%%c");
@@ -127,7 +124,7 @@ function decodificarEtiqueta(texto, esLongitudinal) {
 }
 
 // ==========================================
-// 4. GENERACIÓN DE FILAS (La Lógica Principal)
+// 4. GENERACIÓN ESPACIAL DE FILAS
 // ==========================================
 function generarFilasEstructurales() {
     filasTabla = [];
@@ -135,77 +132,79 @@ function generarFilasEstructurales() {
     let deduccion = parseFloat(document.getElementById("deduccion").value) || 0.20;
     let alturaLibre = alturaH - deduccion;
 
-    // Actualizar Panel Izquierdo
     document.getElementById("infoPerimetro").value = dbAutoCAD.seccion.perimetro.toFixed(3);
     document.getElementById("infoArea").value = dbAutoCAD.seccion.area.toFixed(3);
     let tipoEnc = alturaLibre <= 3.6 ? "Simple" : (alturaLibre <= 5 ? "Doble" : "Triple");
     if(dbAutoCAD.seccion.perimetro === 0) tipoEnc = "-";
     document.getElementById("infoEncofrado").value = tipoEnc;
 
-    // 1. Acero Longitudinal
+    // 1. Acero Longitudinal (Admite múltiples etiquetas separadas)
+    let contLong = 1;
+    let multiLong = dbAutoCAD.aceroLong.etiquetas.length > 1;
     dbAutoCAD.aceroLong.etiquetas.forEach(etiq => {
-        let d = decodificarEtiqueta(etiq, true);
+        let d = decodificarEtiqueta(etiq.texto, true);
         if (d.cant > 0) {
             filasTabla.push({
-                nombre: "Acero longitudinal",
-                similares: d.cant,
-                diam: d.diam,
-                longPieza: alturaH,
-                espac: "-",
-                numXPiso: 1, // Se usa 1 para la matemática, en UI mostraremos "-"
-                empalmes: alturaH > 9 ? Math.floor(alturaH/9) : 0
+                nombre: "Acero longitudinal" + (multiLong ? ` ${contLong}` : ""),
+                similares: d.cant, diam: d.diam, longPieza: alturaH, espac: "-", numXPiso: 1, empalmes: alturaH > 9 ? Math.floor(alturaH/9) : 0
             });
+            contLong++;
         }
     });
 
-    // Función genérica para agrupar
+    // ¡NUEVA FUNCIÓN! Agrupa analizando la distancia espacial entre polilínea y flecha
     function agruparYAgregar(etiquetas, polilineas, prefijoNombre, calcNumXPiso, calcLongPieza) {
+        if (polilineas.length === 0) return;
         let grupos = {};
-        etiquetas.forEach((etiq, i) => {
-            let d = decodificarEtiqueta(etiq, false);
-            let pol = polilineas[i];
-            if (d.espac > 0 && pol) {
-                let long = calcLongPieza(pol.long, alturaH);
-                let llave = long.toFixed(3) + "_" + d.diam;
-                if (!grupos[llave]) {
-                    grupos[llave] = { similares: 0, diam: d.diam, longPieza: long, espac: d.espac, numXPiso: calcNumXPiso(d.espac, pol.long, alturaLibre) };
+
+        polilineas.forEach(pol => {
+            let closestEtiq = null;
+            let minDist = Infinity;
+
+            // Busca la etiqueta más cercana físicamente a esta polilínea
+            etiquetas.forEach(etiq => {
+                let dist = Math.hypot(pol.x - etiq.x, pol.y - etiq.y);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestEtiq = etiq;
                 }
-                grupos[llave].similares += 1; // 1 polilínea detectada = +1 similar
+            });
+
+            // Extrae los datos de la etiqueta ganadora
+            let d = { diam: "-", espac: 0 };
+            if (closestEtiq) d = decodificarEtiqueta(closestEtiq.texto, false);
+
+            let long = calcLongPieza(pol.long, alturaH);
+            // Agrupamos usando la Longitud y el Diámetro
+            let llave = long.toFixed(3) + "_" + d.diam;
+
+            if (!grupos[llave]) {
+                grupos[llave] = { similares: 0, diam: d.diam, longPieza: long, espac: d.espac, numXPiso: d.espac > 0 ? calcNumXPiso(d.espac, pol.long, alturaLibre) : 0 };
             }
+            grupos[llave].similares += 1; 
         });
         
+        // Convertimos los grupos a las filas de la tabla
         let cont = 1;
-        for (const k in grupos) {
+        let keys = Object.keys(grupos);
+        for (const k of keys) {
             let g = grupos[k];
-            let nombreFinal = prefijoNombre + (Object.keys(grupos).length > 1 ? ` ${cont}` : "");
+            let nombreFinal = prefijoNombre + (keys.length > 1 ? ` ${cont}` : "");
             filasTabla.push({
-                nombre: nombreFinal,
-                similares: g.similares,
-                diam: g.diam,
-                longPieza: g.longPieza,
-                espac: g.espac,
-                numXPiso: g.numXPiso,
-                empalmes: g.longPieza > 9 ? Math.floor(g.longPieza/9) : 0
+                nombre: nombreFinal, similares: g.similares, diam: g.diam, longPieza: g.longPieza, espac: g.espac, numXPiso: g.numXPiso, empalmes: g.longPieza > 9 ? Math.floor(g.longPieza/9) : 0
             });
             cont++;
         }
     }
 
     // 2. Estribos
-    agruparYAgregar(dbAutoCAD.estribos.etiquetas, dbAutoCAD.estribos.polilineas, "Estribo", 
-        (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-
+    agruparYAgregar(dbAutoCAD.estribos.etiquetas, dbAutoCAD.estribos.polilineas, "Estribo", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
     // 3. Ganchos
-    agruparYAgregar(dbAutoCAD.ganchos.etiquetas, dbAutoCAD.ganchos.polilineas, "Gancho", 
-        (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-
+    agruparYAgregar(dbAutoCAD.ganchos.etiquetas, dbAutoCAD.ganchos.polilineas, "Gancho", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
     // 4. Malla Transversal
-    agruparYAgregar(dbAutoCAD.mallaTrans.etiquetas, dbAutoCAD.mallaTrans.polilineas, "Malla transversal", 
-        (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-
-    // 5. Malla Vertical (Se repite a lo largo del muro, su longitud es la altura)
-    agruparYAgregar(dbAutoCAD.mallaVert.etiquetas, dbAutoCAD.mallaVert.polilineas, "Malla vertical", 
-        (esp, l, hLibre) => Math.ceil(l / esp) + 1, (l, h) => h);
+    agruparYAgregar(dbAutoCAD.mallaTrans.etiquetas, dbAutoCAD.mallaTrans.polilineas, "Malla transversal", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
+    // 5. Malla Vertical 
+    agruparYAgregar(dbAutoCAD.mallaVert.etiquetas, dbAutoCAD.mallaVert.polilineas, "Malla vertical", (esp, l, hLibre) => Math.ceil(l / esp) + 1, (l, h) => h);
 
     renderizarTabla();
 }
@@ -230,17 +229,13 @@ function renderizarTabla() {
     } else {
         filasTabla.forEach((f, idx) => {
             let conf = configAceros[f.diam] || { peso: 0, empalme: 0 };
-            
-            // FÓRMULA MAESTRA DE PESO
-            // Peso = (Similares) * (N°xPiso) * [LongPieza + (Empalmes * LongEmpalme)] * Kg/m
             let pesoFilaBase = f.similares * f.numXPiso * (f.longPieza + (f.empalmes * conf.empalme)) * conf.peso;
-            let pesoFilaTotal = pesoFilaBase * multiplicadorGlobal; // Afectado por N° Elementos de la placa
+            let pesoFilaTotal = pesoFilaBase * multiplicadorGlobal; 
             
             pesoTotalAcero += pesoFilaTotal;
 
-            // UI adaptaciones
-            let txtEspac = f.espac === "-" ? "-" : f.espac.toFixed(2);
-            let txtNumPiso = f.nombre === "Acero longitudinal" ? "-" : f.numXPiso; // Se oculta visualmente el 1
+            let txtEspac = f.espac === "-" || f.espac === 0 ? "-" : f.espac.toFixed(2);
+            let txtNumPiso = f.nombre.includes("Acero longitudinal") ? "-" : f.numXPiso; 
 
             tbody.innerHTML += `
             <tr>
@@ -268,14 +263,12 @@ function renderizarTabla() {
         });
     }
 
-    // Actualizar Resumen Final
     document.getElementById("res-concreto").innerText = volConcreto.toFixed(2);
     document.getElementById("res-encofrado").innerText = areaEncofrado.toFixed(2);
     document.getElementById("res-acero").innerText = pesoTotalAcero.toFixed(2);
     document.getElementById("res-ratio").innerText = volConcreto > 0 ? (pesoTotalAcero / volConcreto).toFixed(2) : "0.00";
 }
 
-// Interacción de los botones + y -
 function cambiarValor(index, campo, delta) {
     if (filasTabla[index][campo] + delta >= 0) {
         filasTabla[index][campo] += delta;
@@ -283,7 +276,6 @@ function cambiarValor(index, campo, delta) {
     }
 }
 
-// Listeners de Variables Principales
 document.getElementById("alturaTotal").addEventListener("change", generarFilasEstructurales);
 document.getElementById("deduccion").addEventListener("change", generarFilasEstructurales);
 document.getElementById("numElementos").addEventListener("input", renderizarTabla);
