@@ -10,7 +10,10 @@
 
     <div id="modalConfig" class="modal-oculto">
         <div class="modal-contenido">
-            <h3>⚙️ Configuración de Aceros (kg/m y Empalmes)</h3>
+            <div class="modal-header">
+                <h3>⚙️ Configuración de Aceros (kg/m y Empalmes)</h3>
+                <button class="btn-cerrar-modal" onclick="cerrarModalConfig(false)">&times;</button>
+            </div>
             <table class="tabla-config">
                 <thead>
                     <tr>
@@ -22,7 +25,7 @@
                 <tbody id="tablaConfigCuerpo">
                     </tbody>
             </table>
-            <button class="btn-guardar" onclick="cerrarModalConfig()">Guardar y Recalcular</button>
+            <button class="btn-guardar" onclick="cerrarModalConfig(true)">Guardar y Recalcular</button>
         </div>
     </div>
 
@@ -44,16 +47,16 @@
                 
                 <div class="seccion-bloque variables-caja">
                     <h3>Variables del Elemento</h3>
-                    <div class="fila-input"><label>Tipo de Elemento:</label><select id="tipoElemento"><option value="placa" selected>Placa</option></select></div>
-                    <div class="fila-input"><label>Altura Total (H):</label><div class="input-grupo"><input type="number" id="alturaTotal" value="3.00" step="0.05"><span>m</span></div></div>
-                    <div class="fila-input"><label>Deducción (Viga/Losa):</label><div class="input-grupo"><input type="number" id="deduccion" value="0.20" step="0.05"><span>m</span></div></div>
-                    <div class="fila-input"><label>Resistencia (f'c):</label><select id="resistenciaConcreto"><option value="280" selected>280 kg/cm²</option></select></div>
+                    <div class="fila-input"><label>Tipo Elemento:</label><select id="tipoElemento"><option value="placa" selected>Placa</option></select></div>
+                    <div class="fila-input"><label>Altura (H):</label><div class="input-grupo"><input type="number" id="alturaTotal" value="3.00" step="0.05"><span>m</span></div></div>
+                    <div class="fila-input"><label>Deducción:</label><div class="input-grupo"><input type="number" id="deduccion" value="0.20" step="0.05"><span>m</span></div></div>
+                    <div class="fila-input"><label>f'c:</label><select id="resistenciaConcreto"><option value="280" selected>280 kg/cm²</option></select></div>
                     
                     <hr>
-                    <div class="fila-input"><label>N° Elementos similares:</label><div class="input-grupo"><input type="number" id="numElementos" value="1" min="1" step="1"><span>und</span></div></div>
+                    <div class="fila-input"><label>N° Elementos:</label><div class="input-grupo"><input type="number" id="numElementos" value="1" min="1" step="1"><span>und</span></div></div>
                     <div class="fila-input"><label>Perímetro:</label><div class="input-grupo"><input type="text" id="infoPerimetro" value="-" disabled><span>m</span></div></div>
                     <div class="fila-input"><label>Área:</label><div class="input-grupo"><input type="text" id="infoArea" value="-" disabled><span>m²</span></div></div>
-                    <div class="fila-input"><label>Tipo Encofrado:</label><div class="input-grupo"><input type="text" id="infoEncofrado" value="-" disabled></div></div>
+                    <div class="fila-input"><label>Encofrado:</label><div class="input-grupo"><input type="text" id="infoEncofrado" value="-" disabled></div></div>
                 </div>
 
                 <div class="seccion-bloque caja-resultados">
@@ -94,7 +97,7 @@
 
         <div class="panel-dibujo">
             <h2>Vista de Sección (Canvas)</h2>
-            <canvas id="planoColumna" width="450" height="700"></canvas>
+            <canvas id="planoColumna" width="1000" height="800"></canvas>
         </div>
     </div>
 

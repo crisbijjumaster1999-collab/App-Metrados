@@ -41,16 +41,20 @@ function abrirModalConfig() {
     document.getElementById("modalConfig").style.display = "flex";
 }
 
-function cerrarModalConfig() {
-    // Guardar cambios
-    for (const diam of Object.keys(configAceros)) {
-        let p = parseFloat(document.getElementById(`peso_${diam}`).value);
-        let e = parseFloat(document.getElementById(`emp_${diam}`).value);
-        if(!isNaN(p)) configAceros[diam].peso = p;
-        if(!isNaN(e)) configAceros[diam].empalme = e;
+// Reemplaza esta función en la sección 2 de tu script.js
+function cerrarModalConfig(guardarCambios) {
+    if (guardarCambios) {
+        // Si el usuario presionó "Guardar y Recalcular"
+        for (const diam of Object.keys(configAceros)) {
+            let p = parseFloat(document.getElementById(`peso_${diam}`).value);
+            let e = parseFloat(document.getElementById(`emp_${diam}`).value);
+            if(!isNaN(p)) configAceros[diam].peso = p;
+            if(!isNaN(e)) configAceros[diam].empalme = e;
+        }
+        renderizarTabla(); // Recalcula todo con los nuevos pesos
     }
+    // Ocultar modal (se ejecuta tanto si guarda como si presiona la "X")
     document.getElementById("modalConfig").style.display = "none";
-    renderizarTabla(); // Recalcula todo con los nuevos pesos
 }
 
 // ==========================================

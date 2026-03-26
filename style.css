@@ -4,7 +4,7 @@
 body {
     font-family: 'Segoe UI', Arial, sans-serif;
     margin: 0;
-    background-color: #f4f4f9; /* Fondo gris claro elegante */
+    background-color: #f4f4f9;
     color: #334155;
 }
 
@@ -17,18 +17,20 @@ body {
 }
 
 /* =========================================
-   2. PANELES PRINCIPALES (Layout)
+   2. PANELES PRINCIPALES (Layout 50/50)
    ========================================= */
 .panel-izquierdo {
-    flex: 1; /* Toma todo el espacio izquierdo */
+    flex: 1; /* Ocupa 1 fracción del espacio */
+    width: 50%; /* Fuerza que sea la mitad de la pantalla */
     display: flex;
     flex-direction: column;
-    overflow-y: auto; /* Permite hacer scroll si hay muchos aceros */
+    overflow-y: auto;
     padding-right: 10px;
 }
 
 .panel-dibujo {
-    width: 450px;
+    flex: 1; /* Ocupa la otra fracción */
+    width: 50%; /* Fuerza que sea la otra mitad de la pantalla */
     background-color: #ffffff;
     border: 1px solid #cbd5e1;
     border-radius: 10px;
@@ -47,9 +49,13 @@ body {
 }
 
 canvas {
-    background-color: #e5e7eb; /* Fondo gris del área de dibujo */
+    background-color: #e5e7eb;
     border: 1px solid #94a3b8;
     border-radius: 4px;
+    width: 100%; /* El canvas toma el 100% de su contenedor (es decir, el 50% de la pantalla) */
+    height: auto; /* Mantiene proporciones para placas horizontales o verticales */
+    max-height: 85vh; /* Evita que crezca hacia abajo forzando scroll infinito */
+    object-fit: contain; 
 }
 
 /* =========================================
@@ -73,7 +79,7 @@ canvas {
     margin-bottom: 15px;
 }
 
-/* El bloque superior divide Variables y Resumen en 2 columnas */
+/* El bloque superior divide Variables y Resumen en 2 columnas dentro del 50% izquierdo */
 .bloque-superior {
     display: flex;
     gap: 20px;
@@ -145,29 +151,24 @@ hr {
     background-color: #f8fafc;
 }
 
-.fila-input select:focus, .fila-input input:focus {
-    border-color: #2563eb;
-    background-color: #ffffff;
-}
-
 .input-grupo {
     display: flex;
     align-items: center;
     gap: 8px;
-    width: 110px;
+    width: 100px;
     justify-content: flex-end;
 }
 
 .input-grupo input {
-    width: 70px;
+    width: 60px;
     text-align: center;
 }
 
 /* =========================================
-   6. CAJA OSCURA DE RESUMEN (El "Look" Elegante)
+   6. CAJA OSCURA DE RESUMEN
    ========================================= */
 .caja-resultados {
-    background-color: #1e293b; /* Color oscuro */
+    background-color: #1e293b; 
     color: #f8fafc;
     border: none;
 }
@@ -181,12 +182,12 @@ hr {
     display: flex;
     justify-content: space-between;
     margin-bottom: 12px;
-    font-size: 15px;
+    font-size: 14px; /* Un poco más pequeño para encajar mejor */
 }
 
 .destacado {
-    color: #34d399; /* Verde esmeralda */
-    font-size: 18px;
+    color: #34d399; 
+    font-size: 16px;
     border-top: 1px dashed #475569;
     padding-top: 15px;
     margin-top: 15px;
@@ -208,13 +209,13 @@ hr {
 
 .tabla-dinamica th {
     background-color: #f1f5f9;
-    padding: 12px 8px;
+    padding: 10px 6px;
     color: #475569;
     border-bottom: 2px solid #cbd5e1;
 }
 
 .tabla-dinamica td {
-    padding: 10px 8px;
+    padding: 8px 6px;
     border-bottom: 1px solid #e2e8f0;
     vertical-align: middle;
 }
@@ -225,12 +226,11 @@ hr {
     padding: 20px !important;
 }
 
-/* Estilos para los botoncitos + y - en la tabla */
 .control-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .control-btn span {
@@ -240,17 +240,16 @@ hr {
 
 .control-btn button {
     background-color: #ffffff;
-    color: #dc2626; /* Rojo */
+    color: #dc2626;
     border: 1px solid #cbd5e1;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     border-radius: 4px;
     cursor: pointer;
     font-weight: bold;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
 }
 
 .control-btn button:hover {
@@ -259,13 +258,13 @@ hr {
 }
 
 /* =========================================
-   8. MODAL DE CONFIGURACIÓN (Pop-up)
+   8. MODAL DE CONFIGURACIÓN Y BOTÓN CERRAR
    ========================================= */
 .modal-oculto {
     display: none;
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(15, 23, 42, 0.7); /* Fondo oscuro con transparencia */
+    background-color: rgba(15, 23, 42, 0.7); 
     z-index: 1000;
     justify-content: center;
     align-items: center;
@@ -279,11 +278,34 @@ hr {
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 }
 
-.modal-contenido h3 {
-    margin-top: 0;
-    color: #1e293b;
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 15px;
     padding-bottom: 10px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #1e293b;
+    border: none;
+    padding: 0;
+}
+
+.btn-cerrar-modal {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #94a3b8;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.btn-cerrar-modal:hover {
+    color: #ef4444; /* Rojo al pasar el mouse */
 }
 
 .tabla-config {
