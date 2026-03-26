@@ -18,7 +18,15 @@ let configAceros = {
     '1 3/8"': { peso: 7.907, empalme: 1.55 }
 };
 
-let dbAutoCAD = { seccion: { perimetro: 0, area: 0, coords: [] }, aceroLong: { etiquetas: [], coords: [] }, estribos: { polilineas: [], etiquetas: [] }, ganchos: { polilineas: [], etiquetas: [] }, mallaTrans: { polilineas: [], etiquetas: [] }, mallaVert: { polilineas: [], etiquetas: [] } };
+// Nueva Estructura: Ya no hay arreglos separados para ETIQUETAS.
+let dbAutoCAD = { 
+    seccion: { perimetro: 0, area: 0, coords: [] }, 
+    aceroLong: { varillas: [] }, 
+    estribos: { polilineas: [] }, 
+    ganchos: { polilineas: [] }, 
+    mallaTrans: { polilineas: [] }, 
+    mallaVert: { polilineas: [] } 
+};
 let filasTabla = []; 
 
 // ==========================================
@@ -52,7 +60,7 @@ function cerrarModalConfig(guardarCambios) {
 }
 
 // ==========================================
-// 3. LECTOR CSV Y EXTRACCIÓN CON COORDENADAS
+// 3. LECTOR CSV (NUEVA ESTRUCTURA DE 8 COLUMNAS)
 // ==========================================
 document.getElementById('csvFileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
@@ -63,41 +71,35 @@ document.getElementById('csvFileInput').addEventListener('change', function(e) {
 });
 
 function procesarCSV(csv) {
-    dbAutoCAD = { seccion: { perimetro: 0, area: 0, coords: [] }, aceroLong: { etiquetas: [], coords: [] }, estribos: { polilineas: [], etiquetas: [] }, ganchos: { polilineas: [], etiquetas: [] }, mallaTrans: { polilineas: [], etiquetas: [] }, mallaVert: { polilineas: [], etiquetas: [] } };
+    dbAutoCAD = { seccion: { perimetro: 0, area: 0, coords: [] }, aceroLong: { varillas: [] }, estribos: { polilineas: [] }, ganchos: { polilineas: [] }, mallaTrans: { polilineas: [] }, mallaVert: { polilineas: [] } };
     const lineas = csv.split('\n');
     
     for (let i = 1; i < lineas.length; i++) {
         const cols = lineas[i].split(',');
-        if (cols.length < 4) continue;
+        if (cols.length < 5) continue;
 
-        const capa = cols[0].toUpperCase(), tipoObj = cols[1].toUpperCase();
-        const x = parseFloat(cols[2]), y = parseFloat(cols[3]);
-        const valor1 = cols[4], valor2 = cols[5], coordsExtra = cols[6] ? cols[6].trim() : "";
+        // Nuevos Índices de AutoCAD
+        const capa = cols[0].toUpperCase(), tipoObj = cols[1].toUpperCase(), etiqueta = cols[2];
+        const x = parseFloat(cols[3]), y = parseFloat(cols[4]);
+        const valor1 = cols[5], valor2 = cols[6], coordsExtra = cols[7] ? cols[7].trim() : "";
 
         if (capa.includes("SECCI") && tipoObj === "POLILINEA") {
             dbAutoCAD.seccion.perimetro = parseFloat(valor1); dbAutoCAD.seccion.area = parseFloat(valor2); dbAutoCAD.seccion.coords = parsearCoordenadas(coordsExtra);
         }
-        else if (capa.includes("LONGITUDINAL")) {
-            // Guardamos el texto y sus coordenadas
-            if (tipoObj === "ETIQUETA") dbAutoCAD.aceroLong.etiquetas.push({ x: x, y: y, texto: valor1 });
-            if (tipoObj === "VARILLA") dbAutoCAD.aceroLong.coords.push({x, y});
+        else if (capa.includes("LONGITUDINAL") && tipoObj === "VARILLA") {
+            dbAutoCAD.aceroLong.varillas.push({ x, y, texto: etiqueta });
         }
-        else if (capa.includes("ESTRIBOS")) {
-            // ¡NUEVO! Guardamos la coordenada (x,y) de cada polilínea y etiqueta para medir distancias luego
-            if (tipoObj === "POLILINEA") dbAutoCAD.estribos.polilineas.push({ x: x, y: y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra) });
-            if (tipoObj === "ETIQUETA") dbAutoCAD.estribos.etiquetas.push({ x: x, y: y, texto: valor1 });
+        else if (capa.includes("ESTRIBOS") && tipoObj === "POLILINEA") {
+            dbAutoCAD.estribos.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta });
         }
-        else if (capa.includes("GANCHOS")) {
-            if (tipoObj === "POLILINEA") dbAutoCAD.ganchos.polilineas.push({ x: x, y: y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra) });
-            if (tipoObj === "ETIQUETA") dbAutoCAD.ganchos.etiquetas.push({ x: x, y: y, texto: valor1 });
+        else if (capa.includes("GANCHOS") && tipoObj === "POLILINEA") {
+            dbAutoCAD.ganchos.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta });
         }
-        else if (capa.includes("MALLA TRANS")) {
-            if (tipoObj === "POLILINEA") dbAutoCAD.mallaTrans.polilineas.push({ x: x, y: y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra) });
-            if (tipoObj === "ETIQUETA") dbAutoCAD.mallaTrans.etiquetas.push({ x: x, y: y, texto: valor1 });
+        else if (capa.includes("MALLA TRANS") && tipoObj === "POLILINEA") {
+            dbAutoCAD.mallaTrans.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta });
         }
-        else if (capa.includes("MALLA VERT")) {
-            if (tipoObj === "POLILINEA") dbAutoCAD.mallaVert.polilineas.push({ x: x, y: y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra) });
-            if (tipoObj === "ETIQUETA") dbAutoCAD.mallaVert.etiquetas.push({ x: x, y: y, texto: valor1 });
+        else if (capa.includes("MALLA VERT") && tipoObj === "POLILINEA") {
+            dbAutoCAD.mallaVert.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta });
         }
     }
     dibujarEnCanvas();
@@ -111,7 +113,7 @@ function parsearCoordenadas(str) {
 }
 
 function decodificarEtiqueta(texto, esLongitudinal) {
-    if (!texto) return { cant: 0, diam: "-", espac: 0 };
+    if (!texto || texto === "-") return { cant: 0, diam: "-", espac: 0 };
     texto = texto.trim();
     if (esLongitudinal) {
         let partes = texto.split("%%c");
@@ -124,93 +126,48 @@ function decodificarEtiqueta(texto, esLongitudinal) {
 }
 
 // ==========================================
-// 4. GENERACIÓN ESPACIAL DE FILAS (BORDES MATEMÁTICOS)
+// 4. GENERACIÓN DE FILAS (Ahora directo desde el objeto)
 // ==========================================
-
-// Función matemática: Calcula la distancia más corta de un punto a una línea
-function distanciaPuntoSegmento(px, py, x1, y1, x2, y2) {
-    let A = px - x1, B = py - y1, C = x2 - x1, D = y2 - y1;
-    let dot = A * C + B * D;
-    let len_sq = C * C + D * D;
-    let param = -1;
-    if (len_sq != 0) param = dot / len_sq;
-    let xx, yy;
-    if (param < 0) { xx = x1; yy = y1; }
-    else if (param > 1) { xx = x2; yy = y2; }
-    else { xx = x1 + param * C; yy = y1 + param * D; }
-    let dx = px - xx, dy = py - yy;
-    return Math.sqrt(dx * dx + dy * dy);
-}
-
-// Escáner perimetral: Busca la distancia a los bordes de la polilínea, no al centro
-function distanciaPuntoPolilinea(px, py, coords) {
-    if (!coords || coords.length === 0) return Infinity;
-    if (coords.length === 1) return Math.hypot(px - coords[0].x, py - coords[0].y);
-    let minDist = Infinity;
-    
-    // Medimos la distancia contra todos los lados dibujados
-    for (let i = 0; i < coords.length - 1; i++) {
-        let d = distanciaPuntoSegmento(px, py, coords[i].x, coords[i].y, coords[i+1].x, coords[i+1].y);
-        if (d < minDist) minDist = d;
-    }
-    // Medimos el lado de cierre (para estribos cerrados)
-    let d = distanciaPuntoSegmento(px, py, coords[coords.length-1].x, coords[coords.length-1].y, coords[0].x, coords[0].y);
-    if (d < minDist) minDist = d;
-    
-    return minDist;
-}
-
 function generarFilasEstructurales() {
     filasTabla = [];
     let alturaH = parseFloat(document.getElementById("alturaTotal").value) || 3;
     let deduccion = parseFloat(document.getElementById("deduccion").value) || 0.20;
     let alturaLibre = alturaH - deduccion;
 
-    // Actualizar Panel Izquierdo
     document.getElementById("infoPerimetro").value = dbAutoCAD.seccion.perimetro.toFixed(3);
     document.getElementById("infoArea").value = dbAutoCAD.seccion.area.toFixed(3);
     let tipoEnc = alturaLibre <= 3.6 ? "Simple" : (alturaLibre <= 5 ? "Doble" : "Triple");
     if(dbAutoCAD.seccion.perimetro === 0) tipoEnc = "-";
     document.getElementById("infoEncofrado").value = tipoEnc;
 
-    // 1. Acero Longitudinal (El texto "24 Ø 1" ya contiene la cantidad, no necesita agruparse por distancia)
-    let contLong = 1;
-    let multiLong = dbAutoCAD.aceroLong.etiquetas.length > 1;
-    dbAutoCAD.aceroLong.etiquetas.forEach(etiq => {
-        let d = decodificarEtiqueta(etiq.texto, true);
-        if (d.cant > 0) {
-            filasTabla.push({
-                nombre: "Acero longitudinal" + (multiLong ? ` ${contLong}` : ""),
-                similares: d.cant, diam: d.diam, longPieza: alturaH, espac: "-", numXPiso: 1, empalmes: alturaH > 9 ? Math.floor(alturaH/9) : 0
-            });
-            contLong++;
+    // 1. Acero Longitudinal
+    let gruposLong = {};
+    dbAutoCAD.aceroLong.varillas.forEach(varilla => {
+        if (!gruposLong[varilla.texto]) {
+            let d = decodificarEtiqueta(varilla.texto, true);
+            if (d.cant > 0) gruposLong[varilla.texto] = d;
         }
     });
 
-    // Función Agrupadora Inteligente (Reconoce qué flecha toca a qué polilínea)
-    function agruparYAgregar(etiquetas, polilineas, prefijoNombre, calcNumXPiso, calcLongPieza) {
+    let contLong = 1;
+    let keysLong = Object.keys(gruposLong);
+    for (const key of keysLong) {
+        let d = gruposLong[key];
+        filasTabla.push({
+            nombre: "Acero longitudinal" + (keysLong.length > 1 ? ` ${contLong}` : ""),
+            similares: d.cant, diam: d.diam, longPieza: alturaH, espac: "-", numXPiso: 1, empalmes: alturaH > 9 ? Math.floor(alturaH/9) : 0
+        });
+        contLong++;
+    }
+
+    // Función Agrupadora (Ya no adivina la distancia, lee la etiqueta incrustada)
+    function agruparYAgregar(polilineas, prefijoNombre, calcNumXPiso, calcLongPieza) {
         if (polilineas.length === 0) return;
         let grupos = {};
 
         polilineas.forEach(pol => {
-            let closestEtiq = null;
-            let minDist = Infinity;
-
-            // Busca la flecha que esté literalmente TOCANDO los bordes de esta polilínea
-            etiquetas.forEach(etiq => {
-                let dist = distanciaPuntoPolilinea(etiq.x, etiq.y, pol.coords);
-                if (dist < minDist) {
-                    minDist = dist;
-                    closestEtiq = etiq;
-                }
-            });
-
-            // Asignamos la información de la flecha "ganadora"
-            let d = { diam: "-", espac: 0 };
-            if (closestEtiq) d = decodificarEtiqueta(closestEtiq.texto, false);
-
+            let d = decodificarEtiqueta(pol.texto, false);
             let long = calcLongPieza(pol.long, alturaH);
-            // Agrupamos en la tabla por longitud y diámetro
             let llave = long.toFixed(3) + "_" + d.diam;
 
             if (!grupos[llave]) {
@@ -231,11 +188,11 @@ function generarFilasEstructurales() {
         }
     }
 
-    // Procesamos el resto de elementos
-    agruparYAgregar(dbAutoCAD.estribos.etiquetas, dbAutoCAD.estribos.polilineas, "Estribo", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-    agruparYAgregar(dbAutoCAD.ganchos.etiquetas, dbAutoCAD.ganchos.polilineas, "Gancho", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-    agruparYAgregar(dbAutoCAD.mallaTrans.etiquetas, dbAutoCAD.mallaTrans.polilineas, "Malla transversal", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-    agruparYAgregar(dbAutoCAD.mallaVert.etiquetas, dbAutoCAD.mallaVert.polilineas, "Malla vertical", (esp, l, hLibre) => Math.ceil(l / esp) + 1, (l, h) => h);
+    // Procesar el resto
+    agruparYAgregar(dbAutoCAD.estribos.polilineas, "Estribo", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
+    agruparYAgregar(dbAutoCAD.ganchos.polilineas, "Gancho", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
+    agruparYAgregar(dbAutoCAD.mallaTrans.polilineas, "Malla transversal", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
+    agruparYAgregar(dbAutoCAD.mallaVert.polilineas, "Malla vertical", (esp, l, hLibre) => Math.ceil(l / esp) + 1, (l, h) => h);
 
     renderizarTabla();
 }
@@ -335,11 +292,11 @@ function dibujarEnCanvas() {
     dbAutoCAD.ganchos.polilineas.forEach(gan => dibujarPolilinea(gan.coords, "#22c55e", 2));
     dbAutoCAD.mallaTrans.polilineas.forEach(ml => dibujarPolilinea(ml.coords, "#ef4444", 2));
     dbAutoCAD.mallaVert.polilineas.forEach(ml => dibujarPolilinea(ml.coords, "#f97316", 2));
-    dbAutoCAD.aceroLong.coords.forEach(pt => { ctx.beginPath(); ctx.arc(proyectarX(pt.x), proyectarY(pt.y), 4, 0, Math.PI * 2); ctx.fillStyle = "#06b6d4"; ctx.fill(); ctx.strokeStyle = "#000000"; ctx.lineWidth = 1; ctx.stroke(); });
+    dbAutoCAD.aceroLong.varillas.forEach(pt => { ctx.beginPath(); ctx.arc(proyectarX(pt.x), proyectarY(pt.y), 4, 0, Math.PI * 2); ctx.fillStyle = "#06b6d4"; ctx.fill(); ctx.strokeStyle = "#000000"; ctx.lineWidth = 1; ctx.stroke(); });
 }
 
 function limpiarDatos() {
-    dbAutoCAD = { seccion: { perimetro: 0, area: 0, coords: [] }, aceroLong: { etiquetas: [], coords: [] }, estribos: { polilineas: [], etiquetas: [] }, ganchos: { polilineas: [], etiquetas: [] }, mallaTrans: { polilineas: [], etiquetas: [] }, mallaVert: { polilineas: [], etiquetas: [] }};
+    dbAutoCAD = { seccion: { perimetro: 0, area: 0, coords: [] }, aceroLong: { varillas: [] }, estribos: { polilineas: [] }, ganchos: { polilineas: [] }, mallaTrans: { polilineas: [] }, mallaVert: { polilineas: [] }};
     filasTabla = []; document.getElementById("csvFileInput").value = ""; ctx.clearRect(0, 0, canvas.width, canvas.height);
     document.getElementById("infoPerimetro").value = "-"; document.getElementById("infoArea").value = "-"; document.getElementById("infoEncofrado").value = "-";
     renderizarTabla();
