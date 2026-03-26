@@ -124,21 +124,56 @@ function decodificarEtiqueta(texto, esLongitudinal) {
 }
 
 // ==========================================
-// 4. GENERACIÓN ESPACIAL DE FILAS
+// 4. GENERACIÓN ESPACIAL DE FILAS (BORDES MATEMÁTICOS)
 // ==========================================
+
+// Función matemática: Calcula la distancia más corta de un punto a una línea
+function distanciaPuntoSegmento(px, py, x1, y1, x2, y2) {
+    let A = px - x1, B = py - y1, C = x2 - x1, D = y2 - y1;
+    let dot = A * C + B * D;
+    let len_sq = C * C + D * D;
+    let param = -1;
+    if (len_sq != 0) param = dot / len_sq;
+    let xx, yy;
+    if (param < 0) { xx = x1; yy = y1; }
+    else if (param > 1) { xx = x2; yy = y2; }
+    else { xx = x1 + param * C; yy = y1 + param * D; }
+    let dx = px - xx, dy = py - yy;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+// Escáner perimetral: Busca la distancia a los bordes de la polilínea, no al centro
+function distanciaPuntoPolilinea(px, py, coords) {
+    if (!coords || coords.length === 0) return Infinity;
+    if (coords.length === 1) return Math.hypot(px - coords[0].x, py - coords[0].y);
+    let minDist = Infinity;
+    
+    // Medimos la distancia contra todos los lados dibujados
+    for (let i = 0; i < coords.length - 1; i++) {
+        let d = distanciaPuntoSegmento(px, py, coords[i].x, coords[i].y, coords[i+1].x, coords[i+1].y);
+        if (d < minDist) minDist = d;
+    }
+    // Medimos el lado de cierre (para estribos cerrados)
+    let d = distanciaPuntoSegmento(px, py, coords[coords.length-1].x, coords[coords.length-1].y, coords[0].x, coords[0].y);
+    if (d < minDist) minDist = d;
+    
+    return minDist;
+}
+
 function generarFilasEstructurales() {
     filasTabla = [];
     let alturaH = parseFloat(document.getElementById("alturaTotal").value) || 3;
     let deduccion = parseFloat(document.getElementById("deduccion").value) || 0.20;
     let alturaLibre = alturaH - deduccion;
 
+    // Actualizar Panel Izquierdo
     document.getElementById("infoPerimetro").value = dbAutoCAD.seccion.perimetro.toFixed(3);
     document.getElementById("infoArea").value = dbAutoCAD.seccion.area.toFixed(3);
     let tipoEnc = alturaLibre <= 3.6 ? "Simple" : (alturaLibre <= 5 ? "Doble" : "Triple");
     if(dbAutoCAD.seccion.perimetro === 0) tipoEnc = "-";
     document.getElementById("infoEncofrado").value = tipoEnc;
 
-    // 1. Acero Longitudinal (Admite múltiples etiquetas separadas)
+    // 1. Acero Longitudinal (El texto "24 Ø 1" ya contiene la cantidad, no necesita agruparse por distancia)
     let contLong = 1;
     let multiLong = dbAutoCAD.aceroLong.etiquetas.length > 1;
     dbAutoCAD.aceroLong.etiquetas.forEach(etiq => {
@@ -152,7 +187,7 @@ function generarFilasEstructurales() {
         }
     });
 
-    // ¡NUEVA FUNCIÓN! Agrupa analizando la distancia espacial entre polilínea y flecha
+    // Función Agrupadora Inteligente (Reconoce qué flecha toca a qué polilínea)
     function agruparYAgregar(etiquetas, polilineas, prefijoNombre, calcNumXPiso, calcLongPieza) {
         if (polilineas.length === 0) return;
         let grupos = {};
@@ -161,21 +196,21 @@ function generarFilasEstructurales() {
             let closestEtiq = null;
             let minDist = Infinity;
 
-            // Busca la etiqueta más cercana físicamente a esta polilínea
+            // Busca la flecha que esté literalmente TOCANDO los bordes de esta polilínea
             etiquetas.forEach(etiq => {
-                let dist = Math.hypot(pol.x - etiq.x, pol.y - etiq.y);
+                let dist = distanciaPuntoPolilinea(etiq.x, etiq.y, pol.coords);
                 if (dist < minDist) {
                     minDist = dist;
                     closestEtiq = etiq;
                 }
             });
 
-            // Extrae los datos de la etiqueta ganadora
+            // Asignamos la información de la flecha "ganadora"
             let d = { diam: "-", espac: 0 };
             if (closestEtiq) d = decodificarEtiqueta(closestEtiq.texto, false);
 
             let long = calcLongPieza(pol.long, alturaH);
-            // Agrupamos usando la Longitud y el Diámetro
+            // Agrupamos en la tabla por longitud y diámetro
             let llave = long.toFixed(3) + "_" + d.diam;
 
             if (!grupos[llave]) {
@@ -184,7 +219,6 @@ function generarFilasEstructurales() {
             grupos[llave].similares += 1; 
         });
         
-        // Convertimos los grupos a las filas de la tabla
         let cont = 1;
         let keys = Object.keys(grupos);
         for (const k of keys) {
@@ -197,13 +231,10 @@ function generarFilasEstructurales() {
         }
     }
 
-    // 2. Estribos
+    // Procesamos el resto de elementos
     agruparYAgregar(dbAutoCAD.estribos.etiquetas, dbAutoCAD.estribos.polilineas, "Estribo", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-    // 3. Ganchos
     agruparYAgregar(dbAutoCAD.ganchos.etiquetas, dbAutoCAD.ganchos.polilineas, "Gancho", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-    // 4. Malla Transversal
     agruparYAgregar(dbAutoCAD.mallaTrans.etiquetas, dbAutoCAD.mallaTrans.polilineas, "Malla transversal", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-    // 5. Malla Vertical 
     agruparYAgregar(dbAutoCAD.mallaVert.etiquetas, dbAutoCAD.mallaVert.polilineas, "Malla vertical", (esp, l, hLibre) => Math.ceil(l / esp) + 1, (l, h) => h);
 
     renderizarTabla();
