@@ -124,3 +124,13 @@ canvas {
     font-size: 18px;
     color: #34d399; /* Verde resaltado para el ratio */
 }
+
+/* Corrección para que el input type=file parezca un botón normal */
+#csvFileInput {
+    display: none;
+}
+.btn-importar {
+    display: inline-block;
+    box-sizing: border-box;
+    text-align: center;
+}

@@ -13,12 +13,12 @@
             <h2>Control de Metrado</h2>
             
             <div class="seccion-bloque">
-                <button class="btn-importar">📂 Importar Datos de AutoCAD (.csv)</button>
+                <label for="csvFileInput" class="btn-importar" style="display:block; text-align:center;">📂 Importar Datos de AutoCAD (.csv)</label>
+                <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
             </div>
 
             <div class="seccion-bloque">
                 <h3>Variables del Elemento</h3>
-                
                 <div class="fila-input">
                     <label>Tipo de Elemento:</label>
                     <select id="tipoElemento">
@@ -26,7 +26,6 @@
                         <option value="placa" selected>Placa</option>
                     </select>
                 </div>
-
                 <div class="fila-input">
                     <label>Altura Total (H):</label>
                     <div class="input-grupo">
@@ -34,7 +33,6 @@
                         <span>m</span>
                     </div>
                 </div>
-
                 <div class="fila-input">
                     <label>Deducción (Viga/Losa):</label>
                     <div class="input-grupo">
@@ -42,7 +40,6 @@
                         <span>m</span>
                     </div>
                 </div>
-
                 <div class="fila-input">
                     <label>Resistencia (f'c):</label>
                     <select id="resistenciaConcreto">
@@ -55,7 +52,7 @@
             </div>
 
             <div class="seccion-bloque">
-                <h3>Despiece de Acero</h3>
+                <h3>Despiece de Acero (Por Piso)</h3>
                 <table class="tabla-aceros">
                     <thead>
                         <tr>
@@ -65,10 +62,8 @@
                             <th>Peso (kg)</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr class="fila-ejemplo"><td>6</td><td>3/4"</td><td>3.65</td><td>49.06</td></tr>
-                        <tr class="fila-ejemplo"><td>10</td><td>5/8"</td><td>3.65</td><td>56.58</td></tr>
-                        <tr class="fila-ejemplo"><td>42</td><td>3/8"</td><td>1.15</td><td>27.05</td></tr>
+                    <tbody id="tablaCuerpo">
+                        <tr><td colspan="4" class="fila-ejemplo">Importa un archivo CSV para ver los datos</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -84,7 +79,7 @@
                     <strong><span id="res-encofrado">0.00</span> m²</strong>
                 </div>
                 <div class="resultado-item">
-                    <span>Peso Acero:</span>
+                    <span>Peso Acero Total:</span>
                     <strong><span id="res-acero">0.00</span> kg</strong>
                 </div>
                 <div class="resultado-item destacado">
@@ -98,7 +93,7 @@
 
         <div class="panel-dibujo">
             <h2>Vista de Sección (Canvas)</h2>
-            <canvas id="planoColumna" width="600" height="500"></canvas>
+            <canvas id="planoColumna" width="600" height="700"></canvas>
         </div>
     </div>
 
