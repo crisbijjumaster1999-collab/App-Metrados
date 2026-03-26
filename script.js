@@ -32,7 +32,6 @@ document.getElementById('csvFileInput').addEventListener('change', function(e) {
     reader.onload = function(e) {
         procesarCSV(e.target.result);
     };
-    // Cargamos forzando Latin1 para intentar salvar tildes
     reader.readAsText(file, 'ISO-8859-1'); 
 });
 
@@ -42,12 +41,10 @@ function procesarCSV(csv) {
 
     const lineas = csv.split('\n');
     
-    // Saltamos la fila 0 (Cabeceras)
     for (let i = 1; i < lineas.length; i++) {
         const cols = lineas[i].split(',');
         if (cols.length < 4) continue;
 
-        // Convertir a mayúsculas para evitar errores
         const capa = cols[0].toUpperCase();
         const tipoObj = cols[1].toUpperCase();
         const x = parseFloat(cols[2]);
@@ -56,7 +53,6 @@ function procesarCSV(csv) {
         const valor2 = cols[5];
         const coordsExtra = cols[6] ? cols[6].trim() : "";
 
-        // Usamos .includes() para ignorar si la Ó de SECCIÓN se rompió
         if (capa.includes("SECCI") && tipoObj === "POLILINEA") {
             dbAutoCAD.seccion.perimetro = parseFloat(valor1);
             dbAutoCAD.seccion.area = parseFloat(valor2);
@@ -88,11 +84,8 @@ function procesarCSV(csv) {
     calcularMetrados();
 }
 
-// Convierte "10;20|11;20" o "10:20|11:20" en un Array X,Y
 function parsearCoordenadas(str) {
     if (!str) return [];
-    
-    // Anti-errores si Excel cambió ';' por ':'
     if (str.includes(':')) {
         return str.split('|').map(pt => {
             let coords = pt.split(':');
@@ -112,12 +105,12 @@ function parsearCoordenadas(str) {
 function decodificarEtiqueta(texto, esLongitudinal) {
     texto = texto.trim();
     if (esLongitudinal) {
-        // Ejemplo: "24 %%c 1"" -> cant: 24, diam: 1"
+        // CORREGIDO: "24 %%c 1" -> cant: 24, diam: 1
         let partes = texto.split("%%c");
         if(partes.length < 2) return { cant: 0, diam: "0" };
-        return { cant: parseInt(partes[Partes.length - 2].trim()), diam: partes[Partes.length - 1].trim() };
+        return { cant: parseInt(partes[0].trim()) || 0, diam: partes[1].trim() };
     } else {
-        // Ejemplo: "%%c3/8"@.15" -> diam: 3/8", espac: 0.15
+        // "%%c3/8"@.15" -> diam: 3/8", espac: 0.15
         let limpio = texto.replace("%%c", "").trim();
         let partes = limpio.split("@");
         let diam = partes[0].trim();
@@ -131,18 +124,13 @@ function calcularMetrados() {
     let deduccion = parseFloat(document.getElementById("deduccion").value);
     let alturaLibre = alturaH - deduccion;
 
-    // A. Concreto y Encofrado
     let volConcreto = dbAutoCAD.seccion.area * alturaH;
     let areaEncofrado = dbAutoCAD.seccion.perimetro * alturaLibre;
-
-    // B. Despiece de Acero (Generando el listado)
     let pesoTotalGeneral = 0;
     
-    // Preparamos el HTML de la tabla con las 5 columnas exactas
     let tbody = document.getElementById("tablaCuerpo");
     tbody.innerHTML = "";
     
-    // Función auxiliar para agregar filas a la tabla (MODIFICADA CON 5 TD)
     function agregarFila(nombre, cant, diam, long, peso) {
         if (cant > 0) {
             pesoTotalGeneral += peso;
@@ -154,7 +142,6 @@ function calcularMetrados() {
                 <td>${peso.toFixed(2)}</td>
             </tr>`;
         } else {
-             // Fila vacía si no hay elemento
              tbody.innerHTML += `<tr>
                 <td style="text-align: left; color: #94a3b8;">${nombre}</td>
                 <td colspan="4" style="color: #94a3b8;">-</td>
@@ -168,7 +155,7 @@ function calcularMetrados() {
         let datos = decodificarEtiqueta(etiq, true);
         if(datos.cant > 0) {
             let kgPorMetro = pesosAcero[datos.diam] || 0;
-            let longPorVarilla = alturaH + 0.60; // Altura + traslape
+            let longPorVarilla = alturaH + 0.60; 
             totalCantLong += datos.cant; diamLong = datos.diam; longLong = longPorVarilla; pesoLong += (datos.cant * longPorVarilla * kgPorMetro);
         }
     });
@@ -213,14 +200,14 @@ function calcularMetrados() {
     });
     agregarFila("Malla transversal", totalCantMT, diamMT, longMT, pesoMT);
 
-    // 5. Malla Vertical (Ejemplo: Altura / Espaciamiento)
+    // 5. Malla Vertical
     let totalCantMV = 0, diamMV = "-", longMV = 0, pesoMV = 0;
     dbAutoCAD.mallaVert.etiquetas.forEach((etiq, index) => {
         let datos = decodificarEtiqueta(etiq, false);
         let polilinea = dbAutoCAD.mallaVert.polilineas[index];
         if(datos.espac > 0 && polilinea) {
-            // Suponemos distribución en la longitud total de la placa
-            let longDistribucion = 3.45; // Dato falso hasta leer CSV de placa
+            // Calculamos la longitud de la polilínea extraída
+            let longDistribucion = polilinea.long; 
             let cant = Math.ceil(longDistribucion / datos.espac) + 1;
             let kgPorMetro = pesosAcero[datos.diam] || 0;
             totalCantMV += cant; diamMV = datos.diam; longMV = alturaH; pesoMV += (cant * alturaH * kgPorMetro);
@@ -245,7 +232,6 @@ function dibujarEnCanvas() {
 
     if (dbAutoCAD.seccion.coords.length === 0) return;
 
-    // Calcular límites para Auto-Escalar y centrar
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     dbAutoCAD.seccion.coords.forEach(pt => {
         if (pt.x < minX) minX = pt.x;
@@ -257,20 +243,16 @@ function dibujarEnCanvas() {
     let anchoAutoCAD = maxX - minX;
     let altoAutoCAD = maxY - minY;
     
-    // Escala dinámica (90% del espacio del canvas)
     let escalaX = (canvas.width * 0.9) / anchoAutoCAD;
     let escalaY = (canvas.height * 0.9) / altoAutoCAD;
     let escala = Math.min(escalaX, escalaY);
 
-    // Centro del Canvas
     let offsetX = (canvas.width / 2) - ((minX + maxX) / 2) * escala;
-    // IMPORTANTE: Invertimos Y porque en AutoCAD Y sube, pero en Canvas Y baja
     let offsetY = (canvas.height / 2) + ((minY + maxY) / 2) * escala;
 
     function proyectarX(x) { return x * escala + offsetX; }
     function proyectarY(y) { return -y * escala + offsetY; }
 
-    // Función auxiliar para dibujar polilíneas
     function dibujarPolilinea(coords, color, grosor, relleno = false) {
         if (!coords || coords.length === 0) return;
         ctx.beginPath();
@@ -288,21 +270,13 @@ function dibujarEnCanvas() {
         }
     }
 
-    // 1. DIBUJAR CONCRETO (Gris con borde Magenta)
     dibujarPolilinea(dbAutoCAD.seccion.coords, "#e5e7eb", 2, true); 
     dibujarPolilinea(dbAutoCAD.seccion.coords, "#d946ef", 2, false); 
-
-    // 2. DIBUJAR ESTRIBOS (Amarillo)
     dbAutoCAD.estribos.polilineas.forEach(est => dibujarPolilinea(est.coords, "#eab308", 2));
-
-    // 3. DIBUJAR GANCHOS (Verde)
     dbAutoCAD.ganchos.polilineas.forEach(gan => dibujarPolilinea(gan.coords, "#22c55e", 2));
-
-    // 4. DIBUJAR MALLAS (Rojo / Naranja)
     dbAutoCAD.mallaTrans.polilineas.forEach(ml => dibujarPolilinea(ml.coords, "#ef4444", 2));
     dbAutoCAD.mallaVert.polilineas.forEach(ml => dibujarPolilinea(ml.coords, "#f97316", 2));
 
-    // 5. DIBUJAR ACERO LONGITUDINAL (Puntos Cyan con borde negro)
     dbAutoCAD.aceroLong.coords.forEach(pt => {
         ctx.beginPath();
         ctx.arc(proyectarX(pt.x), proyectarY(pt.y), 4, 0, Math.PI * 2);
@@ -318,10 +292,7 @@ function dibujarEnCanvas() {
 // 5. BOTÓN LIMPIAR Y EVENTOS
 // ==========================================
 function limpiarDatos() {
-    // Resetear base de datos
     dbAutoCAD = { seccion: { perimetro: 0, area: 0, coords: [] }, aceroLong: { etiquetas: [], coords: [] }, estribos: { polilineas: [], etiquetas: [] }, ganchos: { polilineas: [], etiquetas: [] }, mallaTrans: { polilineas: [], etiquetas: [] }, mallaVert: { polilineas: [], etiquetas: [] }};
-    
-    // Resetear HTML
     document.getElementById("csvFileInput").value = "";
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     document.getElementById("tablaCuerpo").innerHTML = `<tr><td colspan="5" class="fila-ejemplo">Importa un archivo CSV para ver los datos</td></tr>`;
