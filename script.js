@@ -1,67 +1,85 @@
 // ==========================================
-// 1. CONFIGURACIÓN Y BASE DE DATOS
+// 1. CONFIGURACIÓN BASE Y ESTADO DINÁMICO
 // ==========================================
 const canvas = document.getElementById("planoColumna");
 const ctx = canvas.getContext("2d");
 
-// Pesos nominales del acero (kg/m)
-const pesosAcero = {
-    '1/4"': 0.25, '6 mm': 0.222, '8 mm': 0.395, '3/8"': 0.56, 
-    '12 mm': 0.888, '1/2"': 0.994, '5/8"': 1.552, '3/4"': 2.235, 
-    '1"': 3.973, '1 3/8"': 7.907
+// Base de datos Editable por el usuario (desde el Modal)
+let configAceros = {
+    '6 mm': { peso: 0.22, empalme: 0.30 },
+    '8 mm': { peso: 0.40, empalme: 0.30 },
+    '12 mm': { peso: 0.86, empalme: 0.30 },
+    '1/4"': { peso: 0.25, empalme: 0.30 },
+    '3/8"': { peso: 0.56, empalme: 0.30 },
+    '1/2"': { peso: 0.99, empalme: 0.40 },
+    '5/8"': { peso: 1.56, empalme: 0.50 },
+    '3/4"': { peso: 2.24, empalme: 0.60 },
+    '1"': { peso: 3.96, empalme: 1.00 },
+    '1 3/8"': { peso: 7.907, empalme: 1.55 }
 };
 
-// Base de datos que lee de AutoCAD
-let dbAutoCAD = {
-    seccion: { perimetro: 0, area: 0, coords: [] },
-    aceroLong: { etiquetas: [], coords: [] },
-    estribos: { polilineas: [], etiquetas: [] },
-    ganchos: { polilineas: [], etiquetas: [] },
-    mallaTrans: { polilineas: [], etiquetas: [] },
-    mallaVert: { polilineas: [], etiquetas: [] }
-};
+// Datos crudos de AutoCAD
+let dbAutoCAD = { seccion: { perimetro: 0, area: 0, coords: [] }, aceroLong: { etiquetas: [], coords: [] }, estribos: { polilineas: [], etiquetas: [] }, ganchos: { polilineas: [], etiquetas: [] }, mallaTrans: { polilineas: [], etiquetas: [] }, mallaVert: { polilineas: [], etiquetas: [] } };
+
+// Filas de la tabla interactiva
+let filasTabla = []; 
 
 // ==========================================
-// 2. LECTOR DE CSV BLINDADO CONTRA TILDES
+// 2. MODAL DE CONFIGURACIÓN
+// ==========================================
+function abrirModalConfig() {
+    let tbody = document.getElementById("tablaConfigCuerpo");
+    tbody.innerHTML = "";
+    for (const [diam, datos] of Object.entries(configAceros)) {
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${diam}</strong></td>
+                <td><input type="number" step="0.001" id="peso_${diam}" value="${datos.peso}"></td>
+                <td><input type="number" step="0.01" id="emp_${diam}" value="${datos.empalme}"></td>
+            </tr>`;
+    }
+    document.getElementById("modalConfig").style.display = "flex";
+}
+
+function cerrarModalConfig() {
+    // Guardar cambios
+    for (const diam of Object.keys(configAceros)) {
+        let p = parseFloat(document.getElementById(`peso_${diam}`).value);
+        let e = parseFloat(document.getElementById(`emp_${diam}`).value);
+        if(!isNaN(p)) configAceros[diam].peso = p;
+        if(!isNaN(e)) configAceros[diam].empalme = e;
+    }
+    document.getElementById("modalConfig").style.display = "none";
+    renderizarTabla(); // Recalcula todo con los nuevos pesos
+}
+
+// ==========================================
+// 3. LECTOR CSV Y EXTRACCIÓN
 // ==========================================
 document.getElementById('csvFileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = function(e) {
-        procesarCSV(e.target.result);
-    };
-    // Cargamos forzando Latin1 para intentar salvar tildes
+    reader.onload = function(e) { procesarCSV(e.target.result); };
     reader.readAsText(file, 'ISO-8859-1'); 
 });
 
 function procesarCSV(csv) {
-    // Resetear datos previos
     dbAutoCAD = { seccion: { perimetro: 0, area: 0, coords: [] }, aceroLong: { etiquetas: [], coords: [] }, estribos: { polilineas: [], etiquetas: [] }, ganchos: { polilineas: [], etiquetas: [] }, mallaTrans: { polilineas: [], etiquetas: [] }, mallaVert: { polilineas: [], etiquetas: [] } };
-
     const lineas = csv.split('\n');
     
-    // Escaneamos el archivo buscando palabras clave
     for (let i = 1; i < lineas.length; i++) {
         const cols = lineas[i].split(',');
         if (cols.length < 4) continue;
 
-        // Convertimos todo a Mayúsculas para no fallar
-        const capa = cols[0].toUpperCase();
-        const tipoObj = cols[1].toUpperCase();
-        const x = parseFloat(cols[2]);
-        const y = parseFloat(cols[3]);
-        const valor1 = cols[4];
-        const valor2 = cols[5];
-        const coordsExtra = cols[6] ? cols[6].trim() : "";
+        const capa = cols[0].toUpperCase(), tipoObj = cols[1].toUpperCase();
+        const x = parseFloat(cols[2]), y = parseFloat(cols[3]);
+        const valor1 = cols[4], valor2 = cols[5], coordsExtra = cols[6] ? cols[6].trim() : "";
 
-        // Usamos .includes() para ignorar si la Ó de SECCIÓN se rompió
         if (capa.includes("SECCI") && tipoObj === "POLILINEA") {
-            dbAutoCAD.seccion.perimetro = parseFloat(valor1);
-            dbAutoCAD.seccion.area = parseFloat(valor2);
-            dbAutoCAD.seccion.coords = parsearCoordenadas(coordsExtra);
+            dbAutoCAD.seccion.perimetro = parseFloat(valor1); dbAutoCAD.seccion.area = parseFloat(valor2); dbAutoCAD.seccion.coords = parsearCoordenadas(coordsExtra);
         }
-        else if (capa.includes("ACERO LONGITUDINAL")) {
+        else if (capa.includes("LONGITUDINAL")) {
             if (tipoObj === "ETIQUETA") dbAutoCAD.aceroLong.etiquetas.push(valor1);
             if (tipoObj === "VARILLA") dbAutoCAD.aceroLong.coords.push({x, y});
         }
@@ -82,234 +100,221 @@ function procesarCSV(csv) {
             if (tipoObj === "ETIQUETA") dbAutoCAD.mallaVert.etiquetas.push(valor1);
         }
     }
-
     dibujarEnCanvas();
-    calcularMetrados();
+    generarFilasEstructurales(); // Crea la estructura base para la tabla
 }
 
-// Convierte "10:20|11:20" en un Array de objetos X,Y
 function parsearCoordenadas(str) {
     if (!str) return [];
-    return str.split('|').map(pt => {
-        // --- ¡USAMOS ":" COMO SEPARADOR DE COORDENADAS ---
-        let coords = pt.split(':');
-        return { x: parseFloat(coords[0]), y: parseFloat(coords[1]) };
-    });
+    let sep = str.includes(':') ? ':' : ';';
+    return str.split('|').map(pt => { let c = pt.split(sep); return { x: parseFloat(c[0]), y: parseFloat(c[1]) }; });
 }
 
-// ==========================================
-// 3. MOTOR DE CÁLCULO Y GENERACIÓN DE TABLA
-// ==========================================
 function decodificarEtiqueta(texto, esLongitudinal) {
     texto = texto.trim();
     if (esLongitudinal) {
-        // Ejemplo: "24 %%c 1"" -> cant: 24, diam: 1"
         let partes = texto.split("%%c");
-        if(partes.length < 2) return { cant: 0, diam: "0" };
-        return { cant: parseInt(partes[0].trim()), diam: partes[1].trim() };
+        return { cant: partes.length >= 2 ? parseInt(partes[partes.length - 2].trim()) || 0 : 0, diam: partes.length >= 2 ? partes[partes.length - 1].trim() : "0" };
     } else {
-        // Ejemplo: "%%c3/8"@.15" -> diam: 3/8", espac: 0.15
         let limpio = texto.replace("%%c", "").trim();
         let partes = limpio.split("@");
-        let diam = partes[0].trim();
-        let espac = partes.length > 1 ? parseFloat(partes[1].trim()) : 0;
-        return { diam: diam, espac: espac };
+        return { diam: partes[0].trim(), espac: partes.length > 1 ? parseFloat(partes[1].trim()) : 0 };
     }
 }
 
-function calcularMetrados() {
-    let alturaH = parseFloat(document.getElementById("alturaTotal").value) || 0;
-    let deduccion = parseFloat(document.getElementById("deduccion").value) || 0;
+// ==========================================
+// 4. GENERACIÓN DE FILAS (La Lógica Principal)
+// ==========================================
+function generarFilasEstructurales() {
+    filasTabla = [];
+    let alturaH = parseFloat(document.getElementById("alturaTotal").value) || 3;
+    let deduccion = parseFloat(document.getElementById("deduccion").value) || 0.20;
     let alturaLibre = alturaH - deduccion;
 
-    // A. Concreto (¡Ya debería funcionar si logramos ignorar la tilde!)
-    let volConcreto = dbAutoCAD.seccion.area * alturaH;
-    let areaEncofrado = dbAutoCAD.seccion.perimetro * alturaLibre;
-    let pesoTotalGeneral = 0;
+    // Actualizar Panel Izquierdo
+    document.getElementById("infoPerimetro").value = dbAutoCAD.seccion.perimetro.toFixed(3);
+    document.getElementById("infoArea").value = dbAutoCAD.seccion.area.toFixed(3);
+    let tipoEnc = alturaLibre <= 3.6 ? "Simple" : (alturaLibre <= 5 ? "Doble" : "Triple");
+    if(dbAutoCAD.seccion.perimetro === 0) tipoEnc = "-";
+    document.getElementById("infoEncofrado").value = tipoEnc;
 
-    // Preparamos el HTML de la tabla con las 5 columnas exactas
+    // 1. Acero Longitudinal
+    dbAutoCAD.aceroLong.etiquetas.forEach(etiq => {
+        let d = decodificarEtiqueta(etiq, true);
+        if (d.cant > 0) {
+            filasTabla.push({
+                nombre: "Acero longitudinal",
+                similares: d.cant,
+                diam: d.diam,
+                longPieza: alturaH,
+                espac: "-",
+                numXPiso: 1, // Se usa 1 para la matemática, en UI mostraremos "-"
+                empalmes: alturaH > 9 ? Math.floor(alturaH/9) : 0
+            });
+        }
+    });
+
+    // Función genérica para agrupar
+    function agruparYAgregar(etiquetas, polilineas, prefijoNombre, calcNumXPiso, calcLongPieza) {
+        let grupos = {};
+        etiquetas.forEach((etiq, i) => {
+            let d = decodificarEtiqueta(etiq, false);
+            let pol = polilineas[i];
+            if (d.espac > 0 && pol) {
+                let long = calcLongPieza(pol.long, alturaH);
+                let llave = long.toFixed(3) + "_" + d.diam;
+                if (!grupos[llave]) {
+                    grupos[llave] = { similares: 0, diam: d.diam, longPieza: long, espac: d.espac, numXPiso: calcNumXPiso(d.espac, pol.long, alturaLibre) };
+                }
+                grupos[llave].similares += 1; // 1 polilínea detectada = +1 similar
+            }
+        });
+        
+        let cont = 1;
+        for (const k in grupos) {
+            let g = grupos[k];
+            let nombreFinal = prefijoNombre + (Object.keys(grupos).length > 1 ? ` ${cont}` : "");
+            filasTabla.push({
+                nombre: nombreFinal,
+                similares: g.similares,
+                diam: g.diam,
+                longPieza: g.longPieza,
+                espac: g.espac,
+                numXPiso: g.numXPiso,
+                empalmes: g.longPieza > 9 ? Math.floor(g.longPieza/9) : 0
+            });
+            cont++;
+        }
+    }
+
+    // 2. Estribos
+    agruparYAgregar(dbAutoCAD.estribos.etiquetas, dbAutoCAD.estribos.polilineas, "Estribo", 
+        (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
+
+    // 3. Ganchos
+    agruparYAgregar(dbAutoCAD.ganchos.etiquetas, dbAutoCAD.ganchos.polilineas, "Gancho", 
+        (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
+
+    // 4. Malla Transversal
+    agruparYAgregar(dbAutoCAD.mallaTrans.etiquetas, dbAutoCAD.mallaTrans.polilineas, "Malla transversal", 
+        (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
+
+    // 5. Malla Vertical (Se repite a lo largo del muro, su longitud es la altura)
+    agruparYAgregar(dbAutoCAD.mallaVert.etiquetas, dbAutoCAD.mallaVert.polilineas, "Malla vertical", 
+        (esp, l, hLibre) => Math.ceil(l / esp) + 1, (l, h) => h);
+
+    renderizarTabla();
+}
+
+// ==========================================
+// 5. RENDER Y MATEMÁTICAS EN TIEMPO REAL
+// ==========================================
+function renderizarTabla() {
     let tbody = document.getElementById("tablaCuerpo");
     tbody.innerHTML = "";
     
-    // Función auxiliar para agregar filas a la tabla (MODIFICADA CON 5 TD)
-    function agregarFila(nombre, cant, diam, long, peso) {
-        if (cant > 0) {
-            pesoTotalGeneral += peso;
-            tbody.innerHTML += `<tr>
-                <td style="text-align: left;">${nombre}</td>
-                <td>${cant}</td>
-                <td>${diam}</td>
-                <td>${long.toFixed(2)}</td>
-                <td>${peso.toFixed(2)}</td>
+    let multiplicadorGlobal = parseInt(document.getElementById("numElementos").value) || 1;
+    let alturaH = parseFloat(document.getElementById("alturaTotal").value) || 3;
+    let deduccion = parseFloat(document.getElementById("deduccion").value) || 0.20;
+    
+    let volConcreto = (dbAutoCAD.seccion.area * alturaH) * multiplicadorGlobal;
+    let areaEncofrado = (dbAutoCAD.seccion.perimetro * (alturaH - deduccion)) * multiplicadorGlobal;
+    let pesoTotalAcero = 0;
+
+    if (filasTabla.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="fila-ejemplo">Sin datos</td></tr>`;
+    } else {
+        filasTabla.forEach((f, idx) => {
+            let conf = configAceros[f.diam] || { peso: 0, empalme: 0 };
+            
+            // FÓRMULA MAESTRA DE PESO
+            // Peso = (Similares) * (N°xPiso) * [LongPieza + (Empalmes * LongEmpalme)] * Kg/m
+            let pesoFilaBase = f.similares * f.numXPiso * (f.longPieza + (f.empalmes * conf.empalme)) * conf.peso;
+            let pesoFilaTotal = pesoFilaBase * multiplicadorGlobal; // Afectado por N° Elementos de la placa
+            
+            pesoTotalAcero += pesoFilaTotal;
+
+            // UI adaptaciones
+            let txtEspac = f.espac === "-" ? "-" : f.espac.toFixed(2);
+            let txtNumPiso = f.nombre === "Acero longitudinal" ? "-" : f.numXPiso; // Se oculta visualmente el 1
+
+            tbody.innerHTML += `
+            <tr>
+                <td style="text-align:left;">${f.nombre}</td>
+                <td>
+                    <div class="control-btn">
+                        <button onclick="cambiarValor(${idx}, 'similares', -1)">-</button>
+                        <span>${f.similares}</span>
+                        <button onclick="cambiarValor(${idx}, 'similares', 1)">+</button>
+                    </div>
+                </td>
+                <td>${f.diam}</td>
+                <td>${f.longPieza.toFixed(3)}</td>
+                <td>${txtEspac}</td>
+                <td>${txtNumPiso}</td>
+                <td>
+                    <div class="control-btn">
+                        <button onclick="cambiarValor(${idx}, 'empalmes', -1)">-</button>
+                        <span>${f.empalmes}</span>
+                        <button onclick="cambiarValor(${idx}, 'empalmes', 1)">+</button>
+                    </div>
+                </td>
+                <td><strong>${pesoFilaTotal.toFixed(2)}</strong></td>
             </tr>`;
-        } else {
-             // Fila vacía si no hay elemento
-             tbody.innerHTML += `<tr>
-                <td style="text-align: left; color: #94a3b8;">${nombre}</td>
-                <td colspan="4" style="color: #94a3b8;">-</td>
-            </tr>`;
-        }
+        });
     }
 
-    // 1. Acero Longitudinal
-    let totalCantLong = 0, diamLong = "-", longLong = 0, pesoLong = 0;
-    dbAutoCAD.aceroLong.etiquetas.forEach(etiq => {
-        let d = decodificarEtiqueta(etiq, true);
-        if(d.cant > 0) {
-            let kgM = pesosAcero[d.diam] || 0;
-            let longPieza = alturaH + 0.60; // Altura + traslape
-            let pesoFila = d.cant * longPieza * kgM;
-            totalCantLong += d.cant; diamLong = d.diam; longLong = longPieza; pesoLong += pesoFila;
-        }
-    });
-    agregarFila("Acero longitudinal", totalCantLong, diamLong, longLong, pesoLong);
-
-    // 2. Estribos
-    let totalCantEst = 0, diamEst = "-", longEst = 0, pesoEst = 0;
-    dbAutoCAD.estribos.etiquetas.forEach((etiq, i) => {
-        let d = decodificarEtiqueta(etiq, false);
-        let pol = dbAutoCAD.estribos.polilineas[i];
-        if(d.espac > 0 && pol) {
-            let cant = Math.ceil(alturaLibre / d.espac) + 1;
-            let kgM = pesosAcero[d.diam] || 0;
-            let pesoFila = cant * pol.long * kgM;
-            totalCantEst += cant; diamEst = d.diam; longEst = pol.long; pesoEst += pesoFila;
-        }
-    });
-    agregarFila("Estribos", totalCantEst, diamEst, longEst, pesoEst);
-
-    // 3. Ganchos
-    let totalCantGan = 0, diamGan = "-", longGan = 0, pesoGan = 0;
-    dbAutoCAD.ganchos.etiquetas.forEach((etiq, i) => {
-        let d = decodificarEtiqueta(etiq, false);
-        let pol = dbAutoCAD.ganchos.polilineas[i];
-        if(d.espac > 0 && pol) {
-            let cant = Math.ceil(alturaLibre / d.espac) + 1;
-            let kgM = pesosAcero[d.diam] || 0;
-            let pesoFila = cant * pol.long * kgM;
-            totalCantGan += cant; diamGan = d.diam; longGan = pol.long; pesoGan += pesoFila;
-        }
-    });
-    agregarFila("Ganchos", totalCantGan, diamGan, longGan, pesoGan);
-
-    // 4. Malla Vertical (Se distribuye a lo largo del muro)
-    let totalCantMV = 0, diamMV = "-", longMV = 0, pesoMV = 0;
-    dbAutoCAD.mallaVert.etiquetas.forEach((etiq, i) => {
-        let d = decodificarEtiqueta(etiq, false);
-        let pol = dbAutoCAD.mallaVert.polilineas[i];
-        if(d.espac > 0 && pol) {
-            let cant = Math.ceil(pol.long / d.espac) + 1; // Longitud de distribución / espaciamiento
-            let kgM = pesosAcero[d.diam] || 0;
-            let longPieza = alturaH; // El fierro sube todo el piso
-            let pesoFila = cant * longPieza * kgM;
-            totalCantMV += cant; diamMV = d.diam; longMV = longPieza; pesoMV += pesoFila;
-        }
-    });
-    agregarFila("Malla vertical", totalCantMV, diamMV, longMV, pesoMV);
-
-    // 5. Malla Transversal (Se distribuye en la altura)
-    let totalCantMT = 0, diamMT = "-", longMT = 0, pesoMT = 0;
-    dbAutoCAD.mallaTrans.etiquetas.forEach((etiq, i) => {
-        let d = decodificarEtiqueta(etiq, false);
-        let pol = dbAutoCAD.mallaTrans.polilineas[i];
-        if(d.espac > 0 && pol) {
-            let cant = Math.ceil(alturaLibre / d.espac) + 1;
-            let kgM = pesosAcero[d.diam] || 0;
-            let pesoFila = cant * pol.long * kgM;
-            totalCantMT += cant; diamMT = d.diam; longMT = pol.long; pesoMT += pesoFila;
-        }
-    });
-    agregarFila("Malla transversal", totalCantMT, diamMT, longMT, pesoMT);
-
-    // C. Enviar Resultados a la Interfaz
+    // Actualizar Resumen Final
     document.getElementById("res-concreto").innerText = volConcreto.toFixed(2);
     document.getElementById("res-encofrado").innerText = areaEncofrado.toFixed(2);
-    document.getElementById("res-acero").innerText = pesoTotalGeneral.toFixed(2);
-    
-    let ratio = volConcreto > 0 ? (pesoTotalGeneral / volConcreto) : 0;
-    document.getElementById("res-ratio").innerText = ratio.toFixed(2);
+    document.getElementById("res-acero").innerText = pesoTotalAcero.toFixed(2);
+    document.getElementById("res-ratio").innerText = volConcreto > 0 ? (pesoTotalAcero / volConcreto).toFixed(2) : "0.00";
 }
 
+// Interacción de los botones + y -
+function cambiarValor(index, campo, delta) {
+    if (filasTabla[index][campo] + delta >= 0) {
+        filasTabla[index][campo] += delta;
+        renderizarTabla();
+    }
+}
+
+// Listeners de Variables Principales
+document.getElementById("alturaTotal").addEventListener("change", generarFilasEstructurales);
+document.getElementById("deduccion").addEventListener("change", generarFilasEstructurales);
+document.getElementById("numElementos").addEventListener("input", renderizarTabla);
+
 // ==========================================
-// 4. MOTOR DE DIBUJO (AUTO-ESCALADO INTELIGENTE)
+// 6. DIBUJO DEL CANVAS
 // ==========================================
 function dibujarEnCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     if (dbAutoCAD.seccion.coords.length === 0) return;
-
-    // Calcular límites para Auto-Escalar y centrar
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    dbAutoCAD.seccion.coords.forEach(pt => {
-        if (pt.x < minX) minX = pt.x;
-        if (pt.x > maxX) maxX = pt.x;
-        if (pt.y < minY) minY = pt.y;
-        if (pt.y > maxY) maxY = pt.y;
-    });
-
-    // Escala dinámica y centrado
-    let escalaX = (canvas.width * 0.9) / (maxX - minX);
-    let escalaY = (canvas.height * 0.9) / (maxY - minY);
+    dbAutoCAD.seccion.coords.forEach(pt => { if (pt.x < minX) minX = pt.x; if (pt.x > maxX) maxX = pt.x; if (pt.y < minY) minY = pt.y; if (pt.y > maxY) maxY = pt.y; });
+    let escalaX = (canvas.width * 0.9) / (maxX - minX), escalaY = (canvas.height * 0.9) / (maxY - minY);
     let escala = Math.min(escalaX, escalaY);
-
-    let offsetX = (canvas.width / 2) - ((minX + maxX) / 2) * escala;
-    let offsetY = (canvas.height / 2) + ((minY + maxY) / 2) * escala;
-
+    let offsetX = (canvas.width / 2) - ((minX + maxX) / 2) * escala, offsetY = (canvas.height / 2) + ((minY + maxY) / 2) * escala;
     function proyectarX(x) { return x * escala + offsetX; }
     function proyectarY(y) { return -y * escala + offsetY; }
-
-    // Función auxiliar para dibujar líneas
     function dibujarPolilinea(coords, color, grosor, relleno = false) {
         if (!coords || coords.length === 0) return;
-        ctx.beginPath();
-        ctx.moveTo(proyectarX(coords[0].x), proyectarY(coords[0].y));
-        for (let i = 1; i < coords.length; i++) {
-            ctx.lineTo(proyectarX(coords[i].x), proyectarY(coords[i].y));
-        }
-        if (relleno) { ctx.fillStyle = color; ctx.fill(); } 
-        else { ctx.strokeStyle = color; ctx.lineWidth = grosor; ctx.stroke(); }
+        ctx.beginPath(); ctx.moveTo(proyectarX(coords[0].x), proyectarY(coords[0].y));
+        for (let i = 1; i < coords.length; i++) ctx.lineTo(proyectarX(coords[i].x), proyectarY(coords[i].y));
+        if (relleno) { ctx.fillStyle = color; ctx.fill(); } else { ctx.strokeStyle = color; ctx.lineWidth = grosor; ctx.stroke(); }
     }
-
-    // 1. DIBUJAR CONCRETO (Gris con borde Magenta)
-    dibujarPolilinea(dbAutoCAD.seccion.coords, "#e5e7eb", 2, true); 
-    dibujarPolilinea(dbAutoCAD.seccion.coords, "#d946ef", 2, false); 
-
-    // 2. DIBUJAR ESTRIBOS (Amarillo)
+    dibujarPolilinea(dbAutoCAD.seccion.coords, "#e5e7eb", 2, true); dibujarPolilinea(dbAutoCAD.seccion.coords, "#d946ef", 2, false); 
     dbAutoCAD.estribos.polilineas.forEach(est => dibujarPolilinea(est.coords, "#eab308", 2));
-
-    // 3. DIBUJAR GANCHOS (Verde)
     dbAutoCAD.ganchos.polilineas.forEach(gan => dibujarPolilinea(gan.coords, "#22c55e", 2));
-
-    // 4. DIBUJAR MALLAS (Rojo / Naranja)
     dbAutoCAD.mallaTrans.polilineas.forEach(ml => dibujarPolilinea(ml.coords, "#ef4444", 2));
     dbAutoCAD.mallaVert.polilineas.forEach(ml => dibujarPolilinea(ml.coords, "#f97316", 2));
-
-    // 5. DIBUJAR ACERO LONGITUDINAL (Puntos Cyan con borde negro)
-    dbAutoCAD.aceroLong.coords.forEach(pt => {
-        ctx.beginPath();
-        ctx.arc(proyectarX(pt.x), proyectarY(pt.y), 4, 0, Math.PI * 2);
-        ctx.fillStyle = "#06b6d4"; ctx.fill();
-        ctx.strokeStyle = "#000000"; ctx.lineWidth = 1; ctx.stroke();
-    });
+    dbAutoCAD.aceroLong.coords.forEach(pt => { ctx.beginPath(); ctx.arc(proyectarX(pt.x), proyectarY(pt.y), 4, 0, Math.PI * 2); ctx.fillStyle = "#06b6d4"; ctx.fill(); ctx.strokeStyle = "#000000"; ctx.lineWidth = 1; ctx.stroke(); });
 }
 
-// ==========================================
-// 5. BOTÓN LIMPIAR Y EVENTOS
-// ==========================================
 function limpiarDatos() {
-    // Resetear base de datos
     dbAutoCAD = { seccion: { perimetro: 0, area: 0, coords: [] }, aceroLong: { etiquetas: [], coords: [] }, estribos: { polilineas: [], etiquetas: [] }, ganchos: { polilineas: [], etiquetas: [] }, mallaTrans: { polilineas: [], etiquetas: [] }, mallaVert: { polilineas: [], etiquetas: [] }};
-    
-    // Resetear HTML
-    document.getElementById("csvFileInput").value = "";
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    document.getElementById("tablaCuerpo").innerHTML = `<tr><td colspan="5" class="fila-ejemplo">Importa un archivo CSV para ver los datos</td></tr>`;
-    document.getElementById("res-concreto").innerText = "0.00";
-    document.getElementById("res-encofrado").innerText = "0.00";
-    document.getElementById("res-acero").innerText = "0.00";
-    document.getElementById("res-ratio").innerText = "0.00";
+    filasTabla = []; document.getElementById("csvFileInput").value = ""; ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById("infoPerimetro").value = "-"; document.getElementById("infoArea").value = "-"; document.getElementById("infoEncofrado").value = "-";
+    renderizarTabla();
 }
-
 document.getElementById("btnLimpiar").addEventListener("click", limpiarDatos);
-document.getElementById("alturaTotal").addEventListener("input", calcularMetrados);
-document.getElementById("deduccion").addEventListener("input", calcularMetrados);

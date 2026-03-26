@@ -8,94 +8,93 @@
 </head>
 <body>
 
+    <div id="modalConfig" class="modal-oculto">
+        <div class="modal-contenido">
+            <h3>⚙️ Configuración de Aceros (kg/m y Empalmes)</h3>
+            <table class="tabla-config">
+                <thead>
+                    <tr>
+                        <th>Ø</th>
+                        <th>Peso (kg/m)</th>
+                        <th>Long. Empalme (m)</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaConfigCuerpo">
+                    </tbody>
+            </table>
+            <button class="btn-guardar" onclick="cerrarModalConfig()">Guardar y Recalcular</button>
+        </div>
+    </div>
+
     <div class="contenedor-principal">
-        <div class="panel-datos">
-            <h2>Control de Metrado</h2>
+        <div class="panel-izquierdo">
             
-            <div class="seccion-bloque" style="display: flex; gap: 10px;">
-                <label for="csvFileInput" class="btn-importar" style="flex: 1; text-align:center;">📂 Importar CSV</label>
-                <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
-                <button id="btnLimpiar" class="btn-limpiar" style="flex: 1;">🗑️ Limpiar</button>
+            <div class="encabezado-controles">
+                <h2>Control de Metrado</h2>
+                <button class="btn-config" onclick="abrirModalConfig()">⚙️ Config. Aceros</button>
             </div>
 
-            <div class="seccion-bloque">
-                <h3>Variables del Elemento</h3>
-                <div class="fila-input">
-                    <label>Tipo de Elemento:</label>
-                    <select id="tipoElemento">
-                        <option value="columna">Columna</option>
-                        <option value="placa" selected>Placa</option>
-                    </select>
+            <div class="botones-accion">
+                <label for="csvFileInput" class="btn-importar">📂 Importar CSV</label>
+                <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
+                <button id="btnLimpiar" class="btn-limpiar">🗑️ Limpiar</button>
+            </div>
+
+            <div class="bloque-superior">
+                
+                <div class="seccion-bloque variables-caja">
+                    <h3>Variables del Elemento</h3>
+                    <div class="fila-input"><label>Tipo de Elemento:</label><select id="tipoElemento"><option value="placa" selected>Placa</option></select></div>
+                    <div class="fila-input"><label>Altura Total (H):</label><div class="input-grupo"><input type="number" id="alturaTotal" value="3.00" step="0.05"><span>m</span></div></div>
+                    <div class="fila-input"><label>Deducción (Viga/Losa):</label><div class="input-grupo"><input type="number" id="deduccion" value="0.20" step="0.05"><span>m</span></div></div>
+                    <div class="fila-input"><label>Resistencia (f'c):</label><select id="resistenciaConcreto"><option value="280" selected>280 kg/cm²</option></select></div>
+                    
+                    <hr>
+                    <div class="fila-input"><label>N° Elementos similares:</label><div class="input-grupo"><input type="number" id="numElementos" value="1" min="1" step="1"><span>und</span></div></div>
+                    <div class="fila-input"><label>Perímetro:</label><div class="input-grupo"><input type="text" id="infoPerimetro" value="-" disabled><span>m</span></div></div>
+                    <div class="fila-input"><label>Área:</label><div class="input-grupo"><input type="text" id="infoArea" value="-" disabled><span>m²</span></div></div>
+                    <div class="fila-input"><label>Tipo Encofrado:</label><div class="input-grupo"><input type="text" id="infoEncofrado" value="-" disabled></div></div>
                 </div>
-                <div class="fila-input">
-                    <label>Altura Total (H):</label>
-                    <div class="input-grupo">
-                        <input type="number" id="alturaTotal" value="3.00" step="0.05">
-                        <span>m</span>
-                    </div>
+
+                <div class="seccion-bloque caja-resultados">
+                    <h3>Resumen Final</h3>
+                    <div class="resultado-item"><span>Volumen Concreto:</span><strong><span id="res-concreto">0.00</span> m³</strong></div>
+                    <div class="resultado-item"><span>Área Encofrado:</span><strong><span id="res-encofrado">0.00</span> m²</strong></div>
+                    <div class="resultado-item"><span>Peso Acero Total:</span><strong><span id="res-acero">0.00</span> kg</strong></div>
+                    <div class="resultado-item destacado"><span>Ratio (Cuantía):</span><strong><span id="res-ratio">0.00</span> kg/m³</strong></div>
+                    <button class="btn-guardar" style="margin-top:20px;">💾 Guardar Metrado en Base de Datos</button>
                 </div>
-                <div class="fila-input">
-                    <label>Deducción (Viga/Losa):</label>
-                    <div class="input-grupo">
-                        <input type="number" id="deduccion" value="0.20" step="0.05">
-                        <span>m</span>
-                    </div>
-                </div>
-                <div class="fila-input">
-                    <label>Resistencia (f'c):</label>
-                    <select id="resistenciaConcreto">
-                        <option value="210">210 kg/cm²</option>
-                        <option value="280" selected>280 kg/cm²</option>
-                        <option value="350">350 kg/cm²</option>
-                        <option value="420">420 kg/cm²</option>
-                    </select>
-                </div>
+
             </div>
 
             <div class="seccion-bloque">
                 <h3>Despiece de acero por piso</h3>
-                <table class="tabla-aceros">
-                    <thead>
-                        <tr>
-                            <th style="text-align: left;">Elemento</th>
-                            <th>Cant.</th>
-                            <th>Ø</th>
-                            <th>Long (m)</th>
-                            <th>Peso (kg)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tablaCuerpo">
-                        <tr><td colspan="5" class="fila-ejemplo">Importa un archivo CSV para ver los datos</td></tr>
-                    </tbody>
-                </table>
+                <div class="tabla-responsive">
+                    <table class="tabla-aceros tabla-dinamica">
+                        <thead>
+                            <tr>
+                                <th>Elemento de acero</th>
+                                <th>N° Aceros Similares</th>
+                                <th>Ø</th>
+                                <th>Long x Pieza (m)</th>
+                                <th>@</th>
+                                <th>N° Aceros x Piso</th>
+                                <th>N° Empalme</th>
+                                <th>Peso kg</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaCuerpo">
+                            <tr><td colspan="8" class="fila-ejemplo">Importa un archivo CSV para ver los datos</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <div class="seccion-bloque caja-resultados">
-                <h3>Resumen Final</h3>
-                <div class="resultado-item">
-                    <span>Volumen Concreto:</span>
-                    <strong><span id="res-concreto">0.00</span> m³</strong>
-                </div>
-                <div class="resultado-item">
-                    <span>Área Encofrado:</span>
-                    <strong><span id="res-encofrado">0.00</span> m²</strong>
-                </div>
-                <div class="resultado-item">
-                    <span>Peso Acero Total:</span>
-                    <strong><span id="res-acero">0.00</span> kg</strong>
-                </div>
-                <div class="resultado-item destacado">
-                    <span>Ratio (Cuantía):</span>
-                    <strong><span id="res-ratio">0.00</span> kg/m³</strong>
-                </div>
-            </div>
-            
-            <button class="btn-guardar">💾 Guardar Metrado en Base de Datos</button>
         </div>
 
         <div class="panel-dibujo">
             <h2>Vista de Sección (Canvas)</h2>
-            <canvas id="planoColumna" width="600" height="700"></canvas>
+            <canvas id="planoColumna" width="450" height="700"></canvas>
         </div>
     </div>
 

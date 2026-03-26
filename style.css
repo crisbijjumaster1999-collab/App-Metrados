@@ -1,160 +1,113 @@
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    background-color: #f4f4f9;
-}
+/* ESTRUCTURA GENERAL BASADA EN EL MOCKUP */
 .contenedor-principal {
-    display: flex; /* Esto divide la pantalla en dos columnas */
+    display: flex;
+    gap: 20px;
+    padding: 20px;
     height: 100vh;
+    box-sizing: border-box;
 }
-.panel-datos {
-    width: 30%;
-    padding: 20px;
-    background-color: #ffffff;
-    border-right: 2px solid #ccc;
-}
-.panel-dibujo {
-    width: 70%;
-    padding: 20px;
+.panel-izquierdo {
+    flex: 1; /* Toma todo el espacio disponible */
     display: flex;
     flex-direction: column;
-    align-items: center;
 }
-canvas {
-    background-color: #e5e7eb; /* Color de fondo simulando el área de trabajo */
-    border: 1px solid #333;
-    box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
-}
-/* ESTILOS DEL PANEL DE DATOS (NUEVOS) */
-.seccion-bloque {
+.panel-dibujo {
+    width: 450px; /* Ancho fijo para el canvas */
     background-color: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    padding: 15px;
+}
+
+/* ENCABEZADOS Y BOTONES PRINCIPALES */
+.encabezado-controles {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+.botones-accion {
+    display: flex;
+    gap: 10px;
     margin-bottom: 20px;
 }
-.seccion-bloque h3 {
-    margin-top: 0;
-    font-size: 14px;
-    color: #475569;
-    border-bottom: 2px solid #e2e8f0;
-    padding-bottom: 8px;
-}
-.btn-importar, .btn-guardar {
-    width: 100%;
-    padding: 12px;
-    background-color: #2563eb;
-    color: white;
-    border: none;
+.btn-importar, .btn-limpiar, .btn-config {
+    padding: 10px 15px;
     border-radius: 6px;
+    font-weight: bold;
     cursor: pointer;
-    font-weight: bold;
+    border: none;
+    text-align: center;
 }
-.btn-guardar {
-    background-color: #10b981; /* Verde para guardar */
-}
-.btn-importar:hover, .btn-guardar:hover {
-    opacity: 0.9;
-}
-.fila-input {
+.btn-importar { background-color: #2563eb; color: white; flex: 1; }
+.btn-limpiar { background-color: #ef4444; color: white; flex: 1; }
+.btn-config { background-color: #475569; color: white; }
+
+/* BLOQUE SUPERIOR (Variables y Resumen) */
+.bloque-superior {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    font-size: 14px;
+    gap: 20px;
+    margin-bottom: 20px;
 }
-.fila-input label {
-    color: #334155;
-    font-weight: bold;
+.variables-caja { flex: 1; }
+.caja-resultados { flex: 1; }
+
+hr { border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0; }
+
+/* TABLA DINÁMICA (Botones + y -) */
+.tabla-responsive {
+    overflow-x: auto;
 }
-.fila-input select, .fila-input input {
-    padding: 6px;
+.tabla-dinamica th {
+    background-color: #f1f5f9;
     border: 1px solid #cbd5e1;
-    border-radius: 4px;
-    width: 120px;
 }
-.input-grupo {
+.tabla-dinamica td {
+    border: 1px solid #e2e8f0;
+    vertical-align: middle;
+}
+.control-btn {
     display: flex;
     align-items: center;
-    gap: 5px;
+    justify-content: center;
+    gap: 10px;
 }
-.input-grupo input {
-    width: 80px;
-}
-
-/* Tabla de Aceros */
-.tabla-aceros {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-    text-align: center;
-}
-.tabla-aceros th {
+.control-btn button {
     background-color: #e2e8f0;
-    padding: 8px;
-}
-.tabla-aceros td {
-    border-bottom: 1px solid #e2e8f0;
-    padding: 6px;
-}
-.fila-ejemplo {
-    color: #94a3b8; /* Gris claro para los datos falsos */
-    font-style: italic;
-}
-
-/* Resultados Dashboard */
-.caja-resultados {
-    background-color: #1e293b; /* Fondo oscuro */
-    color: white;
-}
-.caja-resultados h3 {
-    color: #cbd5e1;
-    border-bottom-color: #334155;
-}
-.resultado-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    font-size: 15px;
-}
-.destacado {
-    margin-top: 15px;
-    padding-top: 10px;
-    border-top: 1px dashed #475569;
-    font-size: 18px;
-    color: #34d399; /* Verde resaltado para el ratio */
-}
-
-/* Corrección para que el input type=file parezca un botón normal */
-#csvFileInput {
-    display: none;
-}
-.btn-importar {
-    display: inline-block;
-    box-sizing: border-box;
-    text-align: center;
-}
-
-/* Corrección para los botones del encabezado */
-.btn-importar {
-    display: inline-block;
-    box-sizing: border-box;
-    padding: 12px;
-    background-color: #2563eb;
-    color: white;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-}
-.btn-limpiar {
-    padding: 12px;
-    background-color: #ef4444; /* Rojo */
-    color: white;
+    color: #b91c1c; /* Rojo tipo Excel */
     border: none;
-    border-radius: 6px;
-    cursor: pointer;
     font-weight: bold;
+    cursor: pointer;
+    border-radius: 3px;
+    width: 20px;
+    height: 20px;
 }
-.btn-limpiar:hover {
-    background-color: #dc2626;
+.control-btn button:hover { background-color: #cbd5e1; }
+
+/* MODAL DE CONFIGURACIÓN */
+.modal-oculto {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+.modal-contenido {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 450px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.tabla-config {
+    width: 100%;
+    margin-bottom: 15px;
+    border-collapse: collapse;
+}
+.tabla-config th, .tabla-config td {
+    padding: 5px; border: 1px solid #ccc; text-align: center;
+}
+.tabla-config input {
+    width: 80px; text-align: center; padding: 3px;
 }
