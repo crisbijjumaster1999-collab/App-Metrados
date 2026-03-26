@@ -134,3 +134,27 @@ canvas {
     box-sizing: border-box;
     text-align: center;
 }
+
+/* Corrección para los botones del encabezado */
+.btn-importar {
+    display: inline-block;
+    box-sizing: border-box;
+    padding: 12px;
+    background-color: #2563eb;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.btn-limpiar {
+    padding: 12px;
+    background-color: #ef4444; /* Rojo */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.btn-limpiar:hover {
+    background-color: #dc2626;
+}

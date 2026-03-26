@@ -12,9 +12,10 @@
         <div class="panel-datos">
             <h2>Control de Metrado</h2>
             
-            <div class="seccion-bloque">
-                <label for="csvFileInput" class="btn-importar" style="display:block; text-align:center;">📂 Importar Datos de AutoCAD (.csv)</label>
+            <div class="seccion-bloque" style="display: flex; gap: 10px;">
+                <label for="csvFileInput" class="btn-importar" style="flex: 1; text-align:center;">📂 Importar CSV</label>
                 <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
+                <button id="btnLimpiar" class="btn-limpiar" style="flex: 1;">🗑️ Limpiar</button>
             </div>
 
             <div class="seccion-bloque">
@@ -52,18 +53,19 @@
             </div>
 
             <div class="seccion-bloque">
-                <h3>Despiece de Acero (Por Piso)</h3>
+                <h3>Despiece de acero por piso</h3>
                 <table class="tabla-aceros">
                     <thead>
                         <tr>
+                            <th style="text-align: left;">Elemento</th>
                             <th>Cant.</th>
                             <th>Ø</th>
-                            <th>Long. (m)</th>
+                            <th>Long (m)</th>
                             <th>Peso (kg)</th>
                         </tr>
                     </thead>
                     <tbody id="tablaCuerpo">
-                        <tr><td colspan="4" class="fila-ejemplo">Importa un archivo CSV para ver los datos</td></tr>
+                        <tr><td colspan="5" class="fila-ejemplo">Importa un archivo CSV para ver los datos</td></tr>
                     </tbody>
                 </table>
             </div>
