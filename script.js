@@ -30,14 +30,22 @@ let dbAutoCAD = {
 };
 let filasTabla = []; 
 
-// NAVEGACIÓN DE PESTAÑAS
+// NAVEGACIÓN DE PESTAÑAS (Actualizada para 4 pestañas)
 function cambiarPestana(idVista, idTab) {
-    document.getElementById('vista-metrado').className = 'vista-oculta';
-    document.getElementById('vista-bd').className = 'vista-oculta';
-    document.getElementById(idVista).className = 'contenedor-principal vista-activa';
+    // 1. Ocultar todas las vistas
+    document.getElementById('vista-metrado').classList.add('vista-oculta');
+    document.getElementById('vista-global').classList.add('vista-oculta');
+    document.getElementById('vista-parcial').classList.add('vista-oculta');
+    document.getElementById('vista-recopilatorio').classList.add('vista-oculta');
     
+    // 2. Quitar color activo de todos los botones
     document.getElementById('tab-metrado').classList.remove('activa');
-    document.getElementById('tab-bd').classList.remove('activa');
+    document.getElementById('tab-global').classList.remove('activa');
+    document.getElementById('tab-parcial').classList.remove('activa');
+    document.getElementById('tab-recopilatorio').classList.remove('activa');
+    
+    // 3. Mostrar la vista seleccionada y activar su botón
+    document.getElementById(idVista).classList.remove('vista-oculta');
     document.getElementById(idTab).classList.add('activa');
 }
 
@@ -354,28 +362,30 @@ function renderizarRecopilatorioCompleto() {
 
 function renderizarBDParcial() {
     let tbody = document.getElementById("tablaBaseDatos"); let tfoot = document.getElementById("tablaBaseDatosFooter"); tbody.innerHTML = "";
-    if(baseDatosProyecto.length === 0) { tbody.innerHTML = `<tr><td colspan="15" class="fila-ejemplo">Aún no hay elementos.</td></tr>`; tfoot.innerHTML = ""; return; }
+    if(baseDatosProyecto.length === 0) { tbody.innerHTML = `<tr><td colspan="19" class="fila-ejemplo">Aún no hay elementos.</td></tr>`; tfoot.innerHTML = ""; return; }
 
-    let t_vol = 0, t_area = 0, t_totalPeso = 0; let t_ac = { '1/4"':0, '3/8"':0, '1/2"':0, '5/8"':0, '3/4"':0, '1"':0, '1 3/8"':0 };
-    baseDatosProyecto.forEach((item) => {
+    let t_vol = 0, t_area = 0, t_totalPeso = 0; let t_ac = { '6 mm':0, '8 mm':0, '1/4"':0, '3/8"':0, '1/2"':0, '5/8"':0, '3/4"':0, '1"':0, '1 3/8"':0 };
+    baseDatosProyecto.forEach((item, idx) => {
         t_vol += item.resultados.volConcreto; t_area += item.resultados.areaEncofrado; t_totalPeso += item.resultados.pesoTotalAcero;
         for (let k in t_ac) t_ac[k] += (item.resultados.pesosPorDiametro[k] || 0);
         tbody.innerHTML += `<tr>
-            <td style="font-weight:bold; text-align:left;">${item.nombre}</td><td>${item.tipo}</td><td>${item.nElem}</td><td>${item.fc}</td>
+            <td>${idx + 1}</td><td style="font-weight:bold; text-align:left;">${item.nombre}</td><td>${item.tipo}</td><td>${item.nElem}</td><td>${item.fc}</td>
             <td style="background-color:#f0f9ff"><strong>${item.resultados.volConcreto.toFixed(2)}</strong></td><td>${item.encTipo}</td><td style="background-color:#fefce8"><strong>${item.resultados.areaEncofrado.toFixed(2)}</strong></td>
+            <td>${(item.resultados.pesosPorDiametro['6 mm']||0).toFixed(2)}</td><td>${(item.resultados.pesosPorDiametro['8 mm']||0).toFixed(2)}</td>
             <td>${(item.resultados.pesosPorDiametro['1/4"']||0).toFixed(2)}</td><td>${(item.resultados.pesosPorDiametro['3/8"']||0).toFixed(2)}</td><td>${(item.resultados.pesosPorDiametro['1/2"']||0).toFixed(2)}</td>
             <td>${(item.resultados.pesosPorDiametro['5/8"']||0).toFixed(2)}</td><td>${(item.resultados.pesosPorDiametro['3/4"']||0).toFixed(2)}</td><td>${(item.resultados.pesosPorDiametro['1"']||0).toFixed(2)}</td><td>${(item.resultados.pesosPorDiametro['1 3/8"']||0).toFixed(2)}</td>
-            <td style="background-color:#fdf2f8"><strong>${item.resultados.pesoTotalAcero.toFixed(2)}</strong></td>
+            <td style="background-color:#fdf2f8"><strong>${item.resultados.pesoTotalAcero.toFixed(2)}</strong></td><td>${item.resultados.ratio.toFixed(2)}</td>
         </tr>`;
     });
-    tfoot.innerHTML = `<tr><td colspan="4" style="text-align:right;">TOTALES:</td><td style="background-color:#bae6fd">${t_vol.toFixed(2)}</td><td>-</td><td style="background-color:#fef08a">${t_area.toFixed(2)}</td>
-        <td>${t_ac['1/4"'].toFixed(2)}</td><td>${t_ac['3/8"'].toFixed(2)}</td><td>${t_ac['1/2"'].toFixed(2)}</td><td>${t_ac['5/8"'].toFixed(2)}</td><td>${t_ac['3/4"'].toFixed(2)}</td><td>${t_ac['1"'].toFixed(2)}</td><td>${t_ac['1 3/8"'].toFixed(2)}</td>
-        <td style="background-color:#fbcfe8">${t_totalPeso.toFixed(2)}</td></tr>`;
+    let ratioGlobal = t_vol > 0 ? (t_totalPeso / t_vol) : 0;
+    tfoot.innerHTML = `<tr><td colspan="5" style="text-align:right;">TOTALES:</td><td style="background-color:#bae6fd">${t_vol.toFixed(2)}</td><td>-</td><td style="background-color:#fef08a">${t_area.toFixed(2)}</td>
+        <td>${t_ac['6 mm'].toFixed(2)}</td><td>${t_ac['8 mm'].toFixed(2)}</td><td>${t_ac['1/4"'].toFixed(2)}</td><td>${t_ac['3/8"'].toFixed(2)}</td><td>${t_ac['1/2"'].toFixed(2)}</td><td>${t_ac['5/8"'].toFixed(2)}</td><td>${t_ac['3/4"'].toFixed(2)}</td><td>${t_ac['1"'].toFixed(2)}</td><td>${t_ac['1 3/8"'].toFixed(2)}</td>
+        <td style="background-color:#fbcfe8">${t_totalPeso.toFixed(2)}</td><td>${ratioGlobal.toFixed(2)}</td></tr>`;
 }
 
 function renderizarBDGlobal() {
     let cont = document.getElementById("contenedor-resumen-global"); cont.innerHTML = "";
-    if(baseDatosProyecto.length === 0) { cont.innerHTML = `<div class="fila-ejemplo">Aún no hay elementos.</div>`; return; }
+    if(baseDatosProyecto.length === 0) { cont.innerHTML = `<div class="fila-ejemplo" style="width: 100%; text-align: center;">Aún no hay elementos.</div>`; return; }
 
     let fcsValidos = ["100", "210", "245", "280", "350", "420"];
     let zonas = ["SUB-ESTRUCTURA", "SUPER-ESTRUCTURA"];
@@ -410,7 +420,7 @@ function renderizarBDGlobal() {
             }
         });
         tablaHTML += `</table>`;
-        if(hayDatosZona) cont.innerHTML += `<div style="flex: 1; min-width: 350px;">${tablaHTML}</div>`;
+        if(hayDatosZona) cont.innerHTML += `<div style="flex: 1; min-width: 400px; max-width: 450px;">${tablaHTML}</div>`;
     });
 }
 
@@ -436,7 +446,7 @@ function renderizarRecopilatorioHTML() {
                             <td style="border:none;"><select class="input-editable-tabla" style="width:100px;" onchange="editarBDEstado(${eIdx}, 'tipo', this.value)"><option value="COLUMNAS" ${elem.tipo==="COLUMNAS"?'selected':''}>Columna</option><option value="PLACAS" ${elem.tipo==="PLACAS"?'selected':''}>Placa</option></select></td>
                             <td style="border:none;"><input type="number" step="0.05" class="input-editable-tabla" style="width:60px;" value="${elem.h}" onchange="editarBDEstado(${eIdx}, 'h', this.value)"></td>
                             <td style="border:none;"><input type="number" step="0.05" class="input-editable-tabla" style="width:60px;" value="${elem.deduccion}" onchange="editarBDEstado(${eIdx}, 'deduccion', this.value)"></td>
-                            <td style="border:none;"><select class="input-editable-tabla" style="width:110px;" onchange="editarBDEstado(${eIdx}, 'fc', this.value)">${fcsHTML}</select></td>
+                            <td style="border:none;"><select class="input-editable-tabla" style="width:90px;" onchange="editarBDEstado(${eIdx}, 'fc', this.value)">${fcsHTML}</select></td>
                             <td style="border:none;"><input type="number" step="1" class="input-editable-tabla" style="width:50px;" value="${elem.nElem}" onchange="editarBDEstado(${eIdx}, 'nElem', this.value)"></td>
                             <td style="border:none;"><strong>${elem.resultados.ratio.toFixed(2)}</strong></td>
                             <td style="border:none; text-align:right;"><button onclick="borrarDeBD(${eIdx})" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-weight:bold;">X</button></td>
@@ -473,18 +483,78 @@ function borrarDeBD(idx) {
     if(confirm("¿Seguro que deseas eliminar este elemento del proyecto?")) { baseDatosProyecto.splice(idx, 1); renderizarRecopilatorioCompleto(); }
 }
 
-function exportarExcelCSV() {
+// ==========================================
+// 8. FUNCIONES DE EXPORTACIÓN A EXCEL
+// ==========================================
+
+function descargarCSV(contenido, nombreArchivo) {
+    const blob = new Blob(["\uFEFF" + contenido], { type: 'text/csv;charset=utf-8;' }); // \uFEFF fuerza a Excel a leer los tildes y caracteres especiales
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", nombreArchivo);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function exportarExcelParcial() {
     if(baseDatosProyecto.length === 0) { alert("No hay datos para exportar."); return; }
-    let csvContent = "N,Zona,Nombre Elemento,Tipo,N Elem.,f'c,Vol. Concreto (m3),Tipo Enc.,Area Enc. (m2),Diam. 1/4 (kg),Diam. 3/8 (kg),Diam. 1/2 (kg),Diam. 5/8 (kg),Diam. 3/4 (kg),Diam. 1 (kg),Diam. 1 3/8 (kg),Total Acero (kg),Ratio (kg/m3)\n";
+    let csv = "N,Nombre Elemento,Tipo,N Elem.,f'c,Vol. Concreto (m3),Tipo Enc.,Area Enc. (m2),Diam. 6mm (kg),Diam. 8mm (kg),Diam. 1/4 (kg),Diam. 3/8 (kg),Diam. 1/2 (kg),Diam. 5/8 (kg),Diam. 3/4 (kg),Diam. 1 (kg),Diam. 1 3/8 (kg),Total Acero (kg),Ratio (kg/m3)\n";
     baseDatosProyecto.forEach((item, i) => {
-        let fila = [ i+1, item.zona, item.nombre, item.tipo, item.numElem, item.fc, item.resultados.volConcreto.toFixed(2), item.encTipo, item.resultados.areaEncofrado.toFixed(2),
-            (item.resultados.pesosPorDiametro['1/4"']||0).toFixed(2), (item.resultados.pesosPorDiametro['3/8"']||0).toFixed(2),
+        let fila = [ i+1, item.nombre, item.tipo, item.numElem, item.fc, item.resultados.volConcreto.toFixed(2), item.encTipo, item.resultados.areaEncofrado.toFixed(2),
+            (item.resultados.pesosPorDiametro['6 mm']||0).toFixed(2), (item.resultados.pesosPorDiametro['8 mm']||0).toFixed(2), (item.resultados.pesosPorDiametro['1/4"']||0).toFixed(2), (item.resultados.pesosPorDiametro['3/8"']||0).toFixed(2),
             (item.resultados.pesosPorDiametro['1/2"']||0).toFixed(2), (item.resultados.pesosPorDiametro['5/8"']||0).toFixed(2), (item.resultados.pesosPorDiametro['3/4"']||0).toFixed(2), (item.resultados.pesosPorDiametro['1"']||0).toFixed(2),
             (item.resultados.pesosPorDiametro['1 3/8"']||0).toFixed(2), item.resultados.pesoTotalAcero.toFixed(2), item.resultados.ratio.toFixed(2)
         ];
-        csvContent += fila.join(",") + "\n";
+        csv += fila.join(",") + "\n";
     });
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); const url = URL.createObjectURL(blob);
-    const link = document.createElement("a"); link.setAttribute("href", url); link.setAttribute("download", "Consolidado_Metrado.csv");
-    link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    descargarCSV(csv, "Resumen_Parcial_Elementos.csv");
+}
+
+function exportarExcelGlobal() {
+    if(baseDatosProyecto.length === 0) { alert("No hay datos para exportar."); return; }
+    let csv = "ZONA,TIPO,PARTIDA,CANTIDAD,UNIDAD\n";
+    let zonas = ["SUB-ESTRUCTURA", "SUPER-ESTRUCTURA"];
+    let tipos = ["COLUMNAS", "PLACAS"];
+    let fcs = ["100", "210", "245", "280", "350", "420"];
+
+    zonas.forEach(z => {
+        tipos.forEach(t => {
+            let elems = baseDatosProyecto.filter(e => e.zona === z && e.tipo === t);
+            if(elems.length > 0) {
+                fcs.forEach(fc => {
+                    let vol = elems.filter(e => e.fc === fc).reduce((sum, e) => sum + e.resultados.volConcreto, 0);
+                    if(vol > 0) csv += `${z},${t},CONCRETO F'C=${fc} KG/CM2,${vol.toFixed(2)},m3\n`;
+                });
+                let encTipos = ["SIMPLE", "DOBLE", "TRIPLE"];
+                encTipos.forEach(enc => {
+                    let area = elems.filter(e => e.encTipo === enc).reduce((sum, e) => sum + e.resultados.areaEncofrado, 0);
+                    let nombreEnc = enc === "SIMPLE" ? "ALTURA SIMPLE" : (enc === "DOBLE" ? "- 2H" : "- 3H");
+                    if(area > 0) csv += `${z},${t},ENCOFRADO Y DESENCOFRADO ${nombreEnc},${area.toFixed(2)},m2\n`;
+                });
+                let acero = elems.reduce((sum, e) => sum + e.resultados.pesoTotalAcero, 0);
+                if(acero > 0) csv += `${z},${t},ACERO FY=4200 KG/CM2,${acero.toFixed(2)},kg\n`;
+
+                let curado = elems.reduce((sum, e) => sum + e.resultados.areaEncofrado, 0);
+                if(curado > 0) csv += `${z},${t},CURADO,${curado.toFixed(2)},m2\n`;
+            }
+        });
+    });
+    descargarCSV(csv, "Resumen_Global_Presupuesto.csv");
+}
+
+function exportarExcelRecopilatorio() {
+    if(baseDatosProyecto.length === 0) { alert("No hay datos para exportar."); return; }
+    let csv = "Elemento,Zona,Tipo,Elemento Acero,Similares,Diametro,Long. Pieza (m),Desarrollo (m),Forma,Espaciamiento,N x Piso,Empalmes,Peso (kg)\n";
+    baseDatosProyecto.forEach(item => {
+        item.filas.forEach(f => {
+            let espac = f.espac === "-" || f.espac === 0 ? "-" : f.espac;
+            let numPiso = f.nombre.includes("longitudinal") ? "-" : f.numXPiso;
+            let emp = f.editableEmpalmes !== undefined ? f.editableEmpalmes : f.numEmpAuto;
+            csv += `${item.nombre},${item.zona},${item.tipo},${f.nombre},${f.similares},${f.diam},${f.longPieza.toFixed(3)},${f.desarrollo.toFixed(3)},${f.forma},${espac},${numPiso},${emp},${f.pesoCalculado.toFixed(2)}\n`;
+        });
+    });
+    descargarCSV(csv, "Despiece_Detallado.csv");
 }

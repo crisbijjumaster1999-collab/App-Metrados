@@ -10,7 +10,9 @@
 
     <div class="navegacion-pestanas">
         <button id="tab-metrado" class="btn-pestana activa" onclick="cambiarPestana('vista-metrado', 'tab-metrado')">🏠 Metrado de Elemento</button>
-        <button id="tab-bd" class="btn-pestana" onclick="cambiarPestana('vista-bd', 'tab-bd')">📊 Base de Datos General</button>
+        <button id="tab-global" class="btn-pestana" onclick="cambiarPestana('vista-global', 'tab-global')">🌍 Resumen Global</button>
+        <button id="tab-parcial" class="btn-pestana" onclick="cambiarPestana('vista-parcial', 'tab-parcial')">📊 Resumen Parcial</button>
+        <button id="tab-recopilatorio" class="btn-pestana" onclick="cambiarPestana('vista-recopilatorio', 'tab-recopilatorio')">✏️ Recopilatorio Editable</button>
     </div>
 
     <div id="modalConfig" class="modal-oculto">
@@ -82,40 +84,50 @@
         </div>
     </div>
 
-    <div id="vista-bd" class="vista-oculta" style="padding: 20px; overflow-y: auto; height: 100vh; box-sizing: border-box; background-color: #e2e8f0;">
+    <div id="vista-global" class="vista-oculta" style="padding: 20px; overflow-y: auto; height: calc(100vh - 45px); box-sizing: border-box; background-color: #e2e8f0;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1 style="margin: 0; color: #1e293b;">Centro de Control de Metrados</h1>
-            <button class="btn-importar" style="width: auto; margin: 0; background-color: #10b981; font-size: 16px; padding: 12px 24px;" onclick="exportarExcelCSV()">📥 Exportar a Excel (CSV)</button>
+            <h1 style="margin: 0; color: #1e293b;">Resumen Global (Presupuesto)</h1>
+            <button class="btn-importar" style="width: auto; margin: 0; background-color: #10b981; font-size: 16px; padding: 12px 24px;" onclick="exportarExcelGlobal()">📥 Exportar Global a Excel</button>
         </div>
-
-        <div class="seccion-bloque" style="background-color: white; padding: 25px; border-top: 5px solid #2563eb;">
-            <h2 style="margin-top: 0; color: #1e293b;">1. Resumen Global (Presupuesto)</h2>
-            <div id="contenedor-resumen-global" style="display: flex; gap: 20px; flex-wrap: wrap;">
-                </div>
+        <div class="seccion-bloque" style="background-color: white; padding: 25px; border-top: 5px solid #2563eb; min-height: 80vh;">
+            <div id="contenedor-resumen-global" style="display: flex; gap: 30px; flex-wrap: wrap; align-items: flex-start;">
+                <div class="fila-ejemplo" style="width: 100%; text-align: center;">Aún no hay elementos guardados.</div>
+            </div>
         </div>
+    </div>
 
-        <div class="seccion-bloque" style="background-color: white; padding: 25px; border-top: 5px solid #8b5cf6;">
-            <h2 style="margin-top: 0; color: #1e293b;">2. Resumen Parcial por Elemento</h2>
+    <div id="vista-parcial" class="vista-oculta" style="padding: 20px; overflow-y: auto; height: calc(100vh - 45px); box-sizing: border-box; background-color: #e2e8f0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1 style="margin: 0; color: #1e293b;">Resumen Parcial por Elemento</h1>
+            <button class="btn-importar" style="width: auto; margin: 0; background-color: #10b981; font-size: 16px; padding: 12px 24px;" onclick="exportarExcelParcial()">📥 Exportar Parcial a Excel</button>
+        </div>
+        <div class="seccion-bloque" style="background-color: white; padding: 25px; border-top: 5px solid #8b5cf6; min-height: 80vh;">
             <div class="tabla-responsive">
                 <table class="tabla-dinamica tabla-bd">
                     <thead>
                         <tr>
-                            <th>Nombre Elemento</th><th>Tipo</th><th>Cant.</th><th>f'c</th>
+                            <th>N°</th><th>Nombre Elemento</th><th>Tipo</th><th>N° Elem.</th><th>f'c</th>
                             <th style="background-color:#e0f2fe">Vol. Concreto (m³)</th>
                             <th>Tipo Enc.</th><th style="background-color:#fef08a">Área Enc. (m²)</th>
-                            <th>Ø 1/4"</th><th>Ø 3/8"</th><th>Ø 1/2"</th><th>Ø 5/8"</th><th>Ø 3/4"</th><th>Ø 1"</th><th>Ø 1 3/8"</th>
+                            <th>Ø 6mm</th><th>Ø 8mm</th><th>Ø 1/4"</th><th>Ø 3/8"</th><th>Ø 1/2"</th><th>Ø 5/8"</th><th>Ø 3/4"</th><th>Ø 1"</th><th>Ø 1 3/8"</th>
                             <th style="background-color:#fce7f3">Total Acero (kg)</th>
+                            <th>Ratio</th>
                         </tr>
                     </thead>
-                    <tbody id="tablaBaseDatos"><tr><td colspan="15" class="fila-ejemplo">Aún no hay elementos guardados.</td></tr></tbody>
+                    <tbody id="tablaBaseDatos"><tr><td colspan="19" class="fila-ejemplo">Aún no hay elementos guardados.</td></tr></tbody>
                     <tfoot id="tablaBaseDatosFooter" style="font-weight: bold; background-color: #f1f5f9; border-top: 2px solid #cbd5e1;"></tfoot>
                 </table>
             </div>
         </div>
+    </div>
 
-        <div class="seccion-bloque" style="background-color: white; padding: 25px; border-top: 5px solid #f59e0b;">
-            <h2 style="margin-top: 0; color: #1e293b;">3. Recopilatorio Detallado y Editable</h2>
-            <p style="color: #64748b; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">Modifica cualquier valor y el sistema recalculará los totales globales automáticamente.</p>
+    <div id="vista-recopilatorio" class="vista-oculta" style="padding: 20px; overflow-y: auto; height: calc(100vh - 45px); box-sizing: border-box; background-color: #e2e8f0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1 style="margin: 0; color: #1e293b;">Recopilatorio Detallado y Editable</h1>
+            <button class="btn-importar" style="width: auto; margin: 0; background-color: #10b981; font-size: 16px; padding: 12px 24px;" onclick="exportarExcelRecopilatorio()">📥 Exportar Despiece a Excel</button>
+        </div>
+        <div class="seccion-bloque" style="background-color: white; padding: 25px; border-top: 5px solid #f59e0b; min-height: 80vh;">
+            <p style="color: #64748b; margin-top: -10px; margin-bottom: 20px; font-size: 15px;">Modifica cualquier valor de los elementos importados y el sistema recalculará los totales globales automáticamente.</p>
             <div id="contenedor-recopilatorio" style="display: flex; flex-direction: column; gap: 30px;">
                 <div class="fila-ejemplo" style="text-align: center;">Aún no hay elementos guardados.</div>
             </div>

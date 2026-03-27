@@ -59,10 +59,10 @@ body {
 }
 
 /* =========================================
-   2. PANELES PRINCIPALES (Layout 12/20 y 8/20)
+   2. PANELES PRINCIPALES (Layout 60% y 40%)
    ========================================= */
 .panel-izquierdo {
-    flex: 12; 
+    flex: 12; /* 12 / 20 = 60% de la pantalla */
     width: 60%;
     display: flex;
     flex-direction: column;
@@ -71,7 +71,7 @@ body {
 }
 
 .panel-dibujo {
-    flex: 8; 
+    flex: 8; /* 8 / 20 = 40% de la pantalla */
     width: 40%;
     background-color: #ffffff;
     border: 1px solid #cbd5e1;
@@ -175,7 +175,7 @@ hr {
 .btn-limpiar:hover { background-color: #dc2626; }
 .btn-config:hover { background-color: #475569; }
 .btn-guardar:hover { background-color: #059669; }
-.btn-guardar-top:hover { background-color: #059669;}
+.btn-guardar-top:hover { background-color: #059669; }
 
 /* =========================================
    5. INPUTS Y FORMULARIOS
@@ -241,7 +241,7 @@ hr {
 }
 
 /* =========================================
-   7. TABLAS DINÁMICAS Y BASE DE DATOS
+   7. TABLAS DINÁMICAS (Pestaña 1 y 4)
    ========================================= */
 .tabla-responsive {
     overflow-x: auto;
@@ -319,12 +319,17 @@ hr {
     border-color: #f87171;
 }
 
+/* =========================================
+   8. TABLAS DE BASE DE DATOS (Pestañas 2 y 3)
+   ========================================= */
+
 /* Estilos Tabla Resumen Global (Azul) */
 .tabla-global {
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
     border: 1px solid #cbd5e1;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .tabla-global td, .tabla-global th {
@@ -333,11 +338,19 @@ hr {
 }
 
 /* Ajuste tabla base de datos Parcial */
-.tabla-bd th { background-color: #e2e8f0; border-right: 1px solid #cbd5e1; font-size: 11px;}
-.tabla-bd td { border-right: 1px solid #cbd5e1; font-size: 12px;}
+.tabla-bd th { 
+    background-color: #e2e8f0; 
+    border-right: 1px solid #cbd5e1; 
+    font-size: 11px;
+}
+
+.tabla-bd td { 
+    border-right: 1px solid #cbd5e1; 
+    font-size: 12px;
+}
 
 /* =========================================
-   8. MODAL Y TABLA CONFIG 
+   9. MODAL Y TABLA CONFIG 
    ========================================= */
 .modal-oculto {
     display: none;
