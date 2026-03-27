@@ -10,27 +10,27 @@ body {
 
 .contenedor-principal {
     display: flex;
-    gap: 15px; /* Gap un poco menor */
-    padding: 15px; /* Padding un poco menor */
+    gap: 15px; 
+    padding: 15px; 
     height: 100vh;
     box-sizing: border-box;
 }
 
 /* =========================================
-   2. PANELES PRINCIPALES (Layout 8/20 - 12/20)
+   2. PANELES PRINCIPALES (Layout 12/20 y 8/20)
    ========================================= */
 .panel-izquierdo {
-    flex: 8; /* 8 / 20 = 40% */
-    width: 40%;
+    flex: 12; /* 12 / 20 = 60% de la pantalla */
+    width: 60%;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    padding-right: 5px;
+    padding-right: 15px;
 }
 
 .panel-dibujo {
-    flex: 12; /* 12 / 20 = 60% */
-    width: 60%;
+    flex: 8; /* 8 / 20 = 40% de la pantalla */
+    width: 40%;
     background-color: #ffffff;
     border: 1px solid #cbd5e1;
     border-radius: 12px;
@@ -85,8 +85,8 @@ canvas {
     margin-bottom: 15px;
 }
 
-.variables-caja { flex: 1.1; margin-bottom: 0; } /* Un poco más ancho */
-.caja-resultados { flex: 0.9; margin-bottom: 0; }
+.variables-caja { flex: 1.2; margin-bottom: 0; } 
+.caja-resultados { flex: 0.8; margin-bottom: 0; }
 
 hr {
     border: 0;
@@ -184,19 +184,19 @@ hr {
     display: flex;
     justify-content: space-between;
     margin-bottom: 8px;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .destacado {
     color: #34d399; 
-    font-size: 15px;
+    font-size: 16px;
     border-top: 1px dashed #475569;
     padding-top: 10px;
     margin-top: 10px;
 }
 
 /* =========================================
-   7. TABLA DINÁMICA DE ACEROS (Actualizada para más columnas)
+   7. TABLA DINÁMICA DE ACEROS 
    ========================================= */
 .tabla-responsive {
     overflow-x: auto;
@@ -205,14 +205,14 @@ hr {
 .tabla-dinamica {
     width: 100%;
     border-collapse: collapse;
-    font-size: 11px; /* Letra un poco más pequeña */
+    font-size: 12px; /* Un poquito más grande ya que hay más espacio */
     text-align: center;
-    table-layout: fixed; /* Anchos de columna fijos */
+    table-layout: fixed; 
 }
 
 .tabla-dinamica th {
     background-color: #f8fafc;
-    padding: 6px 2px;
+    padding: 8px 4px;
     color: #64748b;
     border-bottom: 2px solid #e2e8f0;
     overflow: hidden;
@@ -221,22 +221,22 @@ hr {
 }
 
 .tabla-dinamica td {
-    padding: 4px 2px;
+    padding: 6px 4px;
     border-bottom: 1px solid #e2e8f0;
     vertical-align: middle;
 }
 
-/* Ajuste de anchos fijos de columnas para tabla 8/20 */
+/* Anchos de columnas ajustados al nuevo espacio del 60% */
 .tabla-dinamica th:nth-child(1) { width: 22%; } /* Elemento */
 .tabla-dinamica th:nth-child(2) { width: 8%; }  /* N°Sim */
 .tabla-dinamica th:nth-child(3) { width: 8%; }  /* Ø */
-.tabla-dinamica th:nth-child(4) { width: 10%; } /* Long Pieza */
-.tabla-dinamica th:nth-child(5) { width: 10%; } /* Desarr */
+.tabla-dinamica th:nth-child(4) { width: 9%; } /* Long Pieza */
+.tabla-dinamica th:nth-child(5) { width: 9%; } /* Desarr */
 .tabla-dinamica th:nth-child(6) { width: 10%; } /* Forma */
 .tabla-dinamica th:nth-child(7) { width: 7%; }  /* @ */
 .tabla-dinamica th:nth-child(8) { width: 8%; }  /* N°x Piso */
-.tabla-dinamica th:nth-child(9) { width: 7%; }  /* N°Emp */
-.tabla-dinamica th:nth-child(10) { width: 10%; } /* Peso */
+.tabla-dinamica th:nth-child(9) { width: 8%; }  /* N°Emp */
+.tabla-dinamica th:nth-child(10) { width: 11%; } /* Peso */
 
 .fila-ejemplo {
     color: #94a3b8;
@@ -244,25 +244,24 @@ hr {
     padding: 15px !important;
 }
 
-/* NUEVO: Estilo para campos editables DENTRO de la tabla */
 .input-editable-tabla {
     width: 90%;
     border: 1px solid #cbd5e1;
     border-radius: 4px;
-    padding: 2px;
+    padding: 4px 2px;
     text-align: center;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .control-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 4px;
 }
 
 .control-btn span {
-    width: 15px;
+    width: 18px;
     font-weight: bold;
 }
 
@@ -270,15 +269,15 @@ hr {
     background-color: #ffffff;
     color: #ef4444;
     border: 1px solid #cbd5e1;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     border-radius: 4px;
     cursor: pointer;
     font-weight: bold;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: 12px;
     padding: 0;
 }
 
@@ -288,7 +287,7 @@ hr {
 }
 
 /* =========================================
-   8. MODAL Y TABLA CONFIG (Actualizada)
+   8. MODAL Y TABLA CONFIG 
    ========================================= */
 .modal-oculto {
     display: none;
@@ -304,7 +303,7 @@ hr {
     background-color: #ffffff;
     padding: 20px;
     border-radius: 16px;
-    width: 550px; /* Un poco más ancho */
+    width: 550px; 
     box-shadow: 0 10px 25px rgba(0,0,0,0.1);
 }
 
