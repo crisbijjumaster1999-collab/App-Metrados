@@ -18,7 +18,6 @@ let configAceros = {
     '1 3/8"': { peso: 7.907, empalme: 1.55 }
 };
 
-// Nueva Estructura: Ya no hay arreglos separados para ETIQUETAS.
 let dbAutoCAD = { 
     seccion: { perimetro: 0, area: 0, coords: [] }, 
     aceroLong: { varillas: [] }, 
@@ -60,7 +59,7 @@ function cerrarModalConfig(guardarCambios) {
 }
 
 // ==========================================
-// 3. LECTOR CSV (NUEVA ESTRUCTURA DE 8 COLUMNAS)
+// 3. LECTOR CSV 
 // ==========================================
 document.getElementById('csvFileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
@@ -78,7 +77,6 @@ function procesarCSV(csv) {
         const cols = lineas[i].split(',');
         if (cols.length < 5) continue;
 
-        // Nuevos Índices de AutoCAD
         const capa = cols[0].toUpperCase(), tipoObj = cols[1].toUpperCase(), etiqueta = cols[2];
         const x = parseFloat(cols[3]), y = parseFloat(cols[4]);
         const valor1 = cols[5], valor2 = cols[6], coordsExtra = cols[7] ? cols[7].trim() : "";
@@ -126,7 +124,7 @@ function decodificarEtiqueta(texto, esLongitudinal) {
 }
 
 // ==========================================
-// 4. GENERACIÓN DE FILAS (Ahora directo desde el objeto)
+// 4. GENERACIÓN DE FILAS 
 // ==========================================
 function generarFilasEstructurales() {
     filasTabla = [];
@@ -136,11 +134,12 @@ function generarFilasEstructurales() {
 
     document.getElementById("infoPerimetro").value = dbAutoCAD.seccion.perimetro.toFixed(3);
     document.getElementById("infoArea").value = dbAutoCAD.seccion.area.toFixed(3);
+    
+    // Auto-cálculo del encofrado, pero ahora asignado a un <select>
     let tipoEnc = alturaLibre <= 3.6 ? "Simple" : (alturaLibre <= 5 ? "Doble" : "Triple");
     if(dbAutoCAD.seccion.perimetro === 0) tipoEnc = "-";
     document.getElementById("infoEncofrado").value = tipoEnc;
 
-    // 1. Acero Longitudinal
     let gruposLong = {};
     dbAutoCAD.aceroLong.varillas.forEach(varilla => {
         if (!gruposLong[varilla.texto]) {
@@ -160,7 +159,6 @@ function generarFilasEstructurales() {
         contLong++;
     }
 
-    // Función Agrupadora (Ya no adivina la distancia, lee la etiqueta incrustada)
     function agruparYAgregar(polilineas, prefijoNombre, calcNumXPiso, calcLongPieza) {
         if (polilineas.length === 0) return;
         let grupos = {};
@@ -188,7 +186,6 @@ function generarFilasEstructurales() {
         }
     }
 
-    // Procesar el resto
     agruparYAgregar(dbAutoCAD.estribos.polilineas, "Estribo", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
     agruparYAgregar(dbAutoCAD.ganchos.polilineas, "Gancho", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
     agruparYAgregar(dbAutoCAD.mallaTrans.polilineas, "Malla transversal", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
@@ -298,6 +295,7 @@ function dibujarEnCanvas() {
 function limpiarDatos() {
     dbAutoCAD = { seccion: { perimetro: 0, area: 0, coords: [] }, aceroLong: { varillas: [] }, estribos: { polilineas: [] }, ganchos: { polilineas: [] }, mallaTrans: { polilineas: [] }, mallaVert: { polilineas: [] }};
     filasTabla = []; document.getElementById("csvFileInput").value = ""; ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById("nombreElemento").value = ""; // Limpiar también el nombre
     document.getElementById("infoPerimetro").value = "-"; document.getElementById("infoArea").value = "-"; document.getElementById("infoEncofrado").value = "-";
     renderizarTabla();
 }
