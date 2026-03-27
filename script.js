@@ -59,14 +59,14 @@ function cerrarModalConfig(guardarCambios) {
 }
 
 // ==========================================
-// 3. LECTOR CSV 
+// 3. LECTOR CSV Y AUTO-NOMBRE
 // ==========================================
 document.getElementById('csvFileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // ¡NUEVO! Extraer el nombre del archivo sin el ".csv" y pegarlo en el input
-    let nombreSinExtension = file.name.replace(/\.[^/.]+$/, ""); // Borra la extensión
+    // MAGIA: Toma el nombre del archivo, le quita el ".csv" y lo pega en la caja
+    let nombreSinExtension = file.name.replace(/\.[^/.]+$/, ""); 
     document.getElementById("nombreElemento").value = nombreSinExtension;
 
     const reader = new FileReader();
@@ -140,7 +140,6 @@ function generarFilasEstructurales() {
     document.getElementById("infoPerimetro").value = dbAutoCAD.seccion.perimetro.toFixed(3);
     document.getElementById("infoArea").value = dbAutoCAD.seccion.area.toFixed(3);
     
-    // Auto-cálculo del encofrado, pero ahora asignado a un <select>
     let tipoEnc = alturaLibre <= 3.6 ? "Simple" : (alturaLibre <= 5 ? "Doble" : "Triple");
     if(dbAutoCAD.seccion.perimetro === 0) tipoEnc = "-";
     document.getElementById("infoEncofrado").value = tipoEnc;
