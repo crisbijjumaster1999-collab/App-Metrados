@@ -245,8 +245,10 @@ function generarFilasEstructurales() {
 }
 
 // ==========================================
-// 5. RENDER Y MATEMÁTICAS EN TIEMPO REAL
+// 5. RENDER, EDICIÓN Y MATEMÁTICAS 
 // ==========================================
+let varCalculadas = { volConcreto: 0, areaEncofrado: 0, pesoTotalAcero: 0, ratio: 0, pesosPorDiametro: {} };
+
 function renderizarTabla() {
     let tbody = document.getElementById("tablaCuerpo");
     tbody.innerHTML = "";
@@ -255,9 +257,12 @@ function renderizarTabla() {
     let alturaH = parseFloat(document.getElementById("alturaTotal").value) || 3;
     let deduccionVal = parseFloat(document.getElementById("deduccion").value) || 0.20;
     
-    let volConcreto = (dbAutoCAD.seccion.area * alturaH) * multiplicadorGlobal;
-    let areaEncofrado = (dbAutoCAD.seccion.perimetro * (alturaH - deduccionVal)) * multiplicadorGlobal;
-    let pesoTotalAcero = 0;
+    varCalculadas.volConcreto = (dbAutoCAD.seccion.area * alturaH) * multiplicadorGlobal;
+    varCalculadas.areaEncofrado = (dbAutoCAD.seccion.perimetro * (alturaH - deduccionVal)) * multiplicadorGlobal;
+    varCalculadas.pesoTotalAcero = 0;
+    
+    // Reiniciar pesos por diámetro
+    varCalculadas.pesosPorDiametro = { '6 mm':0, '8 mm':0, '12 mm':0, '1/4"':0, '3/8"':0, '1/2"':0, '5/8"':0, '3/4"':0, '1"':0, '1 3/8"':0 };
 
     if (filasTabla.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" class="fila-ejemplo">Sin datos</td></tr>`; 
@@ -267,20 +272,29 @@ function renderizarTabla() {
             
             let numRecubrimientos = 0;
             if(f.editableForma) { 
-                if (f.forma === "L") numRecubrimientos = 2;
-                else if (f.forma === "[") numRecubrimientos = 4;
+                if (f.forma === "L") numRecubrimientos = 2; else if (f.forma === "[") numRecubrimientos = 4;
             }
             let descuentoFinal = numRecubrimientos * recubrimientoGlobal;
 
+            // Longitud Total Real (Pieza + Desarrollo - Recubrimientos)
             let longTotalCalculo = f.longPieza + f.desarrollo - descuentoFinal;
             if(longTotalCalculo < 0) longTotalCalculo = 0;
 
-            let numEmp = longTotalCalculo > 9 ? Math.floor(longTotalCalculo / 9) : 0;
-
-            let pesoFilaBase = f.similares * f.numXPiso * (longTotalCalculo + (numEmp * conf.empalme)) * conf.peso;
-            let pesoFilaTotal = pesoFilaBase * multiplicadorGlobal; 
+            // 1. Calculamos el empalme automático base
+            let numEmpAuto = longTotalCalculo > 9 ? Math.floor(longTotalCalculo / 9) : 0;
             
-            pesoTotalAcero += pesoFilaTotal;
+            // 2. CORRECCIÓN: Definimos el Empalme Final (Manual si existe, si no Automático)
+            let empalmesFinal = f.editableEmpalmes !== undefined ? f.editableEmpalmes : numEmpAuto;
+
+            // 3. Hallar peso fila (Precisión Exacta para cuadrar con Excel)
+            let acerosTotales = f.similares * f.numXPiso;
+            let longConEmpalmes = longTotalCalculo + (empalmesFinal * conf.empalme);
+            let pesoFilaTotal = acerosTotales * longConEmpalmes * conf.peso * multiplicadorGlobal; 
+            
+            varCalculadas.pesoTotalAcero += pesoFilaTotal;
+            if(varCalculadas.pesosPorDiametro[f.diam] !== undefined) {
+                varCalculadas.pesosPorDiametro[f.diam] += pesoFilaTotal;
+            }
 
             let txtEspac = f.espac === "-" || f.espac === 0 ? "-" : f.espac.toFixed(2);
             let txtNumPiso = f.nombre.includes("Acero longitudinal") ? "-" : f.numXPiso; 
@@ -316,9 +330,9 @@ function renderizarTabla() {
                 <td>${txtNumPiso}</td>
                 <td>
                     <div class="control-btn">
-                        <button onclick="cambiarValor(${idx}, 'editableEmpalmes', -1, ${numEmp})">-</button> 
-                        <span>${f.editableEmpalmes !== undefined ? f.editableEmpalmes : numEmp}</span> 
-                        <button onclick="cambiarValor(${idx}, 'editableEmpalmes', 1, ${numEmp})">+</button>
+                        <button onclick="cambiarValor(${idx}, 'editableEmpalmes', -1, ${numEmpAuto})">-</button> 
+                        <span>${empalmesFinal}</span> 
+                        <button onclick="cambiarValor(${idx}, 'editableEmpalmes', 1, ${numEmpAuto})">+</button>
                     </div>
                 </td>
                 <td><strong>${pesoFilaTotal.toFixed(2)}</strong></td>
@@ -326,10 +340,12 @@ function renderizarTabla() {
         });
     }
 
-    document.getElementById("res-concreto").innerText = volConcreto.toFixed(2);
-    document.getElementById("res-encofrado").innerText = areaEncofrado.toFixed(2);
-    document.getElementById("res-acero").innerText = pesoTotalAcero.toFixed(2);
-    document.getElementById("res-ratio").innerText = volConcreto > 0 ? (pesoTotalAcero / volConcreto).toFixed(2) : "0.00";
+    varCalculadas.ratio = varCalculadas.volConcreto > 0 ? (varCalculadas.pesoTotalAcero / varCalculadas.volConcreto) : 0;
+    
+    document.getElementById("res-concreto").innerText = varCalculadas.volConcreto.toFixed(2);
+    document.getElementById("res-encofrado").innerText = varCalculadas.areaEncofrado.toFixed(2);
+    document.getElementById("res-acero").innerText = varCalculadas.pesoTotalAcero.toFixed(2);
+    document.getElementById("res-ratio").innerText = varCalculadas.ratio.toFixed(2);
 }
 
 function editarValorTabla(index, campo, valor) {
