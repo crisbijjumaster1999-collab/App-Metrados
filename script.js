@@ -4,18 +4,18 @@
 const canvas = document.getElementById("planoColumna");
 const ctx = canvas.getContext("2d");
 
-// Base de datos Editable por el usuario (Actualizada con ganchos 135°)
+// Base de datos Editable por defecto (Actualizada según tu tabla)
 let configAceros = {
-    '6 mm': { peso: 0.22, empalme: 0.30, gancho135: 0.06 }, 
-    '8 mm': { peso: 0.40, empalme: 0.30, gancho135: 0.08 },
-    '12 mm': { peso: 0.86, empalme: 0.30, gancho135: 0.12 },
-    '1/4"': { peso: 0.25, empalme: 0.30, gancho135: 0.065 },
-    '3/8"': { peso: 0.56, empalme: 0.30, gancho135: 0.10 }, 
-    '1/2"': { peso: 0.99, empalme: 0.40, gancho135: 0.13 }, 
-    '5/8"': { peso: 1.56, empalme: 0.50, gancho135: 0.16 }, 
-    '3/4"': { peso: 2.24, empalme: 0.60, gancho135: 0.19 },
-    '1"': { peso: 3.96, empalme: 1.00, gancho135: 0.25 },
-    '1 3/8"': { peso: 7.907, empalme: 1.55, gancho135: 0.35 }
+    '6 mm': { peso: 0.22, empalme: 0.30, gancho135: 0.08 }, 
+    '8 mm': { peso: 0.40, empalme: 0.30, gancho135: 0.10 },
+    '12 mm': { peso: 0.86, empalme: 0.30, gancho135: 0.08 },
+    '1/4"': { peso: 0.25, empalme: 0.30, gancho135: 0.08 },
+    '3/8"': { peso: 0.56, empalme: 0.30, gancho135: 0.13 }, 
+    '1/2"': { peso: 0.99, empalme: 0.40, gancho135: 0.16 }, 
+    '5/8"': { peso: 1.56, empalme: 0.50, gancho135: 0.18 }, 
+    '3/4"': { peso: 2.24, empalme: 0.60, gancho135: 0.27 },
+    '1"': { peso: 3.96, empalme: 1.00, gancho135: 0.35 },
+    '1 3/8"': { peso: 7.907, empalme: 1.55, gancho135: 0.51 }
 };
 
 // Variable Global de Recubrimiento
@@ -32,7 +32,7 @@ let dbAutoCAD = {
 let filasTabla = []; 
 
 // ==========================================
-// 2. MODAL DE CONFIGURACIÓN
+// 2. MODAL DE CONFIGURACIÓN Y ACTUALIZACIÓN
 // ==========================================
 function abrirModalConfig() {
     let tbody = document.getElementById("tablaConfigCuerpo");
@@ -65,7 +65,15 @@ function cerrarModalConfig(guardarCambios) {
             if(!isNaN(g)) configAceros[diam].gancho135 = g; 
         }
         
-        generarFilasEstructurales(); 
+        // CORRECCIÓN: Actualizamos los estribos directamente en la tabla actual sin borrarla
+        filasTabla.forEach(f => {
+            if (f.esEstribo) {
+                let conf = configAceros[f.diam] || { gancho135: 0 };
+                f.desarrollo = conf.gancho135 * 2; // Aplica el nuevo valor x 2 patas
+            }
+        });
+
+        renderizarTabla(); // Refresca los cálculos instantáneamente
     }
     document.getElementById("modalConfig").style.display = "none";
 }
@@ -155,7 +163,6 @@ function generarFilasEstructurales() {
     if(dbAutoCAD.seccion.perimetro === 0) tipoEnc = "-";
     document.getElementById("infoEncofrado").value = tipoEnc;
 
-    // 1. Acero Longitudinal 
     let gruposLong = {};
     dbAutoCAD.aceroLong.varillas.forEach(varilla => {
         if (!gruposLong[varilla.texto]) {
@@ -282,7 +289,6 @@ function renderizarTabla() {
                 `<input type="number" step="0.001" value="${f.desarrollo.toFixed(3)}" class="input-editable-tabla" onchange="editarValorTabla(${idx}, 'desarrollo', this.value)">` : 
                 `<span>${f.desarrollo.toFixed(3)}</span>`;
 
-            // CORRECCIÓN: Aquí cambiamos "I" por "|"
             let cellForma = f.editableForma ? 
                 `<select class="input-editable-tabla" onchange="editarValorTabla(${idx}, 'forma', this.value)">
                     <option value="-" ${f.forma === "-" ? "selected" : ""}>-</option>
@@ -382,11 +388,38 @@ function dibujarEnCanvas() {
     dbAutoCAD.aceroLong.varillas.forEach(pt => { ctx.beginPath(); ctx.arc(proyectarX(pt.x), proyectarY(pt.y), 4, 0, Math.PI * 2); ctx.fillStyle = "#06b6d4"; ctx.fill(); ctx.strokeStyle = "#000000"; ctx.lineWidth = 1; ctx.stroke(); });
 }
 
+// ==========================================
+// 7. FUNCIÓN LIMPIAR (Blindada)
+// ==========================================
 function limpiarDatos() {
-    dbAutoCAD = { seccion: { perimetro: 0, area: 0, coords: [] }, aceroLong: { varillas: [] }, estribos: { polilineas: [] }, ganchos: { polilineas: [] }, mallaTrans: { polilineas: [] }, mallaVert: { polilineas: [] }};
-    filasTabla = []; document.getElementById("csvFileInput").value = ""; ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 1. Borramos ÚNICAMENTE la geometría extraída del CAD
+    dbAutoCAD = { 
+        seccion: { perimetro: 0, area: 0, coords: [] }, 
+        aceroLong: { varillas: [] }, 
+        estribos: { polilineas: [] }, 
+        ganchos: { polilineas: [] }, 
+        mallaTrans: { polilineas: [] }, 
+        mallaVert: { polilineas: [] }
+    };
+    filasTabla = []; 
+    
+    // 2. Reseteamos el cargador de archivos (para que te deje volver a subir el mismo si te equivocaste)
+    document.getElementById("csvFileInput").value = ""; 
+    
+    // 3. Borramos el dibujo del Canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 4. Limpiamos SOLO las cajas de texto que dependen del CAD
     document.getElementById("nombreElemento").value = ""; 
-    document.getElementById("infoPerimetro").value = "-"; document.getElementById("infoArea").value = "-"; document.getElementById("infoEncofrado").value = "-";
+    document.getElementById("infoPerimetro").value = "-"; 
+    document.getElementById("infoArea").value = "-"; 
+    document.getElementById("infoEncofrado").value = "-";
+    
+    // NOTA INTERNA: No tocamos configAceros, recubrimientoGlobal, Altura, Deducción, ni f'c. 
+    // ¡Esos se quedan guardados en la memoria de tu sesión!
+
+    // 5. Renderizamos para que los resultados finales vuelvan a 0.00
     renderizarTabla();
 }
+
 document.getElementById("btnLimpiar").addEventListener("click", limpiarDatos);
