@@ -4,19 +4,22 @@
 const canvas = document.getElementById("planoColumna");
 const ctx = canvas.getContext("2d");
 
-// Base de datos Editable por el usuario
+// Base de datos Editable por el usuario (Actualizada con ganchos 135°)
 let configAceros = {
-    '6 mm': { peso: 0.22, empalme: 0.30 },
-    '8 mm': { peso: 0.40, empalme: 0.30 },
-    '12 mm': { peso: 0.86, empalme: 0.30 },
-    '1/4"': { peso: 0.25, empalme: 0.30 },
-    '3/8"': { peso: 0.56, empalme: 0.30 },
-    '1/2"': { peso: 0.99, empalme: 0.40 },
-    '5/8"': { peso: 1.56, empalme: 0.50 },
-    '3/4"': { peso: 2.24, empalme: 0.60 },
-    '1"': { peso: 3.96, empalme: 1.00 },
-    '1 3/8"': { peso: 7.907, empalme: 1.55 }
+    '6 mm': { peso: 0.22, empalme: 0.30, gancho135: 0.06 }, 
+    '8 mm': { peso: 0.40, empalme: 0.30, gancho135: 0.08 },
+    '12 mm': { peso: 0.86, empalme: 0.30, gancho135: 0.12 },
+    '1/4"': { peso: 0.25, empalme: 0.30, gancho135: 0.065 },
+    '3/8"': { peso: 0.56, empalme: 0.30, gancho135: 0.10 }, 
+    '1/2"': { peso: 0.99, empalme: 0.40, gancho135: 0.13 }, 
+    '5/8"': { peso: 1.56, empalme: 0.50, gancho135: 0.16 }, 
+    '3/4"': { peso: 2.24, empalme: 0.60, gancho135: 0.19 },
+    '1"': { peso: 3.96, empalme: 1.00, gancho135: 0.25 },
+    '1 3/8"': { peso: 7.907, empalme: 1.55, gancho135: 0.35 }
 };
+
+// Variable Global de Recubrimiento
+let recubrimientoGlobal = 0.04; 
 
 let dbAutoCAD = { 
     seccion: { perimetro: 0, area: 0, coords: [] }, 
@@ -34,12 +37,16 @@ let filasTabla = [];
 function abrirModalConfig() {
     let tbody = document.getElementById("tablaConfigCuerpo");
     tbody.innerHTML = "";
+    
+    document.getElementById("recubrimientoModalInput").value = recubrimientoGlobal.toFixed(2);
+
     for (const [diam, datos] of Object.entries(configAceros)) {
         tbody.innerHTML += `
             <tr>
                 <td><strong>${diam}</strong></td>
                 <td><input type="number" step="0.001" id="peso_${diam}" value="${datos.peso}"></td>
                 <td><input type="number" step="0.01" id="emp_${diam}" value="${datos.empalme}"></td>
+                <td><input type="number" step="0.001" id="g135_${diam}" value="${datos.gancho135}"></td>
             </tr>`;
     }
     document.getElementById("modalConfig").style.display = "flex";
@@ -47,13 +54,18 @@ function abrirModalConfig() {
 
 function cerrarModalConfig(guardarCambios) {
     if (guardarCambios) {
+        recubrimientoGlobal = parseFloat(document.getElementById("recubrimientoModalInput").value) || 0.04;
+
         for (const diam of Object.keys(configAceros)) {
             let p = parseFloat(document.getElementById(`peso_${diam}`).value);
             let e = parseFloat(document.getElementById(`emp_${diam}`).value);
+            let g = parseFloat(document.getElementById(`g135_${diam}`).value); 
             if(!isNaN(p)) configAceros[diam].peso = p;
             if(!isNaN(e)) configAceros[diam].empalme = e;
+            if(!isNaN(g)) configAceros[diam].gancho135 = g; 
         }
-        renderizarTabla();
+        
+        generarFilasEstructurales(); 
     }
     document.getElementById("modalConfig").style.display = "none";
 }
@@ -65,7 +77,6 @@ document.getElementById('csvFileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // MAGIA: Toma el nombre del archivo, le quita el ".csv" y lo pega en la caja
     let nombreSinExtension = file.name.replace(/\.[^/.]+$/, ""); 
     document.getElementById("nombreElemento").value = nombreSinExtension;
 
@@ -144,6 +155,7 @@ function generarFilasEstructurales() {
     if(dbAutoCAD.seccion.perimetro === 0) tipoEnc = "-";
     document.getElementById("infoEncofrado").value = tipoEnc;
 
+    // 1. Acero Longitudinal 
     let gruposLong = {};
     dbAutoCAD.aceroLong.varillas.forEach(varilla => {
         if (!gruposLong[varilla.texto]) {
@@ -158,12 +170,21 @@ function generarFilasEstructurales() {
         let d = gruposLong[key];
         filasTabla.push({
             nombre: "Acero longitudinal" + (keysLong.length > 1 ? ` ${contLong}` : ""),
-            similares: d.cant, diam: d.diam, longPieza: alturaH, espac: "-", numXPiso: 1, empalmes: alturaH > 9 ? Math.floor(alturaH/9) : 0
+            similares: d.cant, 
+            diam: d.diam, 
+            longPieza: alturaH, 
+            desarrollo: 0, 
+            forma: "-", 
+            espac: "-", 
+            numXPiso: 1, 
+            editableDesarrollo: true, 
+            editableForma: true, 
+            esEstribo: false 
         });
         contLong++;
     }
 
-    function agruparYAgregar(polilineas, prefijoNombre, calcNumXPiso, calcLongPieza) {
+    function agruparYAgregar(polilineas, prefijoNombre, calcNumXPiso, calcLongPieza, esMallaVertical = false) {
         if (polilineas.length === 0) return;
         let grupos = {};
 
@@ -183,8 +204,26 @@ function generarFilasEstructurales() {
         for (const k of keys) {
             let g = grupos[k];
             let nombreFinal = prefijoNombre + (keys.length > 1 ? ` ${cont}` : "");
+            
+            let isStirrup = prefijoNombre.includes("Estribo");
+            let des = 0;
+            if(isStirrup) {
+                let conf = configAceros[g.diam] || { gancho135: 0 };
+                des = conf.gancho135 * 2; 
+            }
+
             filasTabla.push({
-                nombre: nombreFinal, similares: g.similares, diam: g.diam, longPieza: g.longPieza, espac: g.espac, numXPiso: g.numXPiso, empalmes: g.longPieza > 9 ? Math.floor(g.longPieza/9) : 0
+                nombre: nombreFinal, 
+                similares: g.similares, 
+                diam: g.diam, 
+                longPieza: g.longPieza, 
+                desarrollo: des, 
+                forma: "-", 
+                espac: g.espac, 
+                numXPiso: g.numXPiso,
+                editableDesarrollo: esMallaVertical || prefijoNombre.includes("Malla transversal"), 
+                editableForma: esMallaVertical || prefijoNombre.includes("Malla transversal"), 
+                esEstribo: isStirrup
             });
             cont++;
         }
@@ -193,7 +232,7 @@ function generarFilasEstructurales() {
     agruparYAgregar(dbAutoCAD.estribos.polilineas, "Estribo", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
     agruparYAgregar(dbAutoCAD.ganchos.polilineas, "Gancho", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
     agruparYAgregar(dbAutoCAD.mallaTrans.polilineas, "Malla transversal", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-    agruparYAgregar(dbAutoCAD.mallaVert.polilineas, "Malla vertical", (esp, l, hLibre) => Math.ceil(l / esp) + 1, (l, h) => h);
+    agruparYAgregar(dbAutoCAD.mallaVert.polilineas, "Malla vertical", (esp, l, hLibre) => Math.ceil(l / esp) + 1, (l, h) => h, true);
 
     renderizarTabla();
 }
@@ -207,24 +246,51 @@ function renderizarTabla() {
     
     let multiplicadorGlobal = parseInt(document.getElementById("numElementos").value) || 1;
     let alturaH = parseFloat(document.getElementById("alturaTotal").value) || 3;
-    let deduccion = parseFloat(document.getElementById("deduccion").value) || 0.20;
+    let deduccionVal = parseFloat(document.getElementById("deduccion").value) || 0.20;
     
     let volConcreto = (dbAutoCAD.seccion.area * alturaH) * multiplicadorGlobal;
-    let areaEncofrado = (dbAutoCAD.seccion.perimetro * (alturaH - deduccion)) * multiplicadorGlobal;
+    let areaEncofrado = (dbAutoCAD.seccion.perimetro * (alturaH - deduccionVal)) * multiplicadorGlobal;
     let pesoTotalAcero = 0;
 
     if (filasTabla.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="fila-ejemplo">Sin datos</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="fila-ejemplo">Sin datos</td></tr>`; 
     } else {
         filasTabla.forEach((f, idx) => {
             let conf = configAceros[f.diam] || { peso: 0, empalme: 0 };
-            let pesoFilaBase = f.similares * f.numXPiso * (f.longPieza + (f.empalmes * conf.empalme)) * conf.peso;
+            
+            let numRecubrimientos = 0;
+            if(f.editableForma) { 
+                if (f.forma === "L") numRecubrimientos = 2;
+                else if (f.forma === "[") numRecubrimientos = 4;
+            }
+            let descuentoFinal = numRecubrimientos * recubrimientoGlobal;
+
+            let longTotalCalculo = f.longPieza + f.desarrollo - descuentoFinal;
+            if(longTotalCalculo < 0) longTotalCalculo = 0;
+
+            let numEmp = longTotalCalculo > 9 ? Math.floor(longTotalCalculo / 9) : 0;
+
+            let pesoFilaBase = f.similares * f.numXPiso * (longTotalCalculo + (numEmp * conf.empalme)) * conf.peso;
             let pesoFilaTotal = pesoFilaBase * multiplicadorGlobal; 
             
             pesoTotalAcero += pesoFilaTotal;
 
             let txtEspac = f.espac === "-" || f.espac === 0 ? "-" : f.espac.toFixed(2);
             let txtNumPiso = f.nombre.includes("Acero longitudinal") ? "-" : f.numXPiso; 
+
+            let cellDesarrollo = f.editableDesarrollo ? 
+                `<input type="number" step="0.001" value="${f.desarrollo.toFixed(3)}" class="input-editable-tabla" onchange="editarValorTabla(${idx}, 'desarrollo', this.value)">` : 
+                `<span>${f.desarrollo.toFixed(3)}</span>`;
+
+            // CORRECCIÓN: Aquí cambiamos "I" por "|"
+            let cellForma = f.editableForma ? 
+                `<select class="input-editable-tabla" onchange="editarValorTabla(${idx}, 'forma', this.value)">
+                    <option value="-" ${f.forma === "-" ? "selected" : ""}>-</option>
+                    <option value="L" ${f.forma === "L" ? "selected" : ""}>L</option>
+                    <option value="[" ${f.forma === "[" ? "selected" : ""}>[</option>
+                    <option value="|" ${f.forma === "|" ? "selected" : ""}>|</option>
+                </select>` : 
+                `<span>-</span>`;
 
             tbody.innerHTML += `
             <tr>
@@ -238,13 +304,15 @@ function renderizarTabla() {
                 </td>
                 <td>${f.diam}</td>
                 <td>${f.longPieza.toFixed(3)}</td>
+                <td>${cellDesarrollo}</td> 
+                <td>${cellForma}</td> 
                 <td>${txtEspac}</td>
                 <td>${txtNumPiso}</td>
                 <td>
                     <div class="control-btn">
-                        <button onclick="cambiarValor(${idx}, 'empalmes', -1)">-</button>
-                        <span>${f.empalmes}</span>
-                        <button onclick="cambiarValor(${idx}, 'empalmes', 1)">+</button>
+                        <button onclick="cambiarValor(${idx}, 'editableEmpalmes', -1, ${numEmp})">-</button> 
+                        <span>${f.editableEmpalmes !== undefined ? f.editableEmpalmes : numEmp}</span> 
+                        <button onclick="cambiarValor(${idx}, 'editableEmpalmes', 1, ${numEmp})">+</button>
                     </div>
                 </td>
                 <td><strong>${pesoFilaTotal.toFixed(2)}</strong></td>
@@ -258,16 +326,34 @@ function renderizarTabla() {
     document.getElementById("res-ratio").innerText = volConcreto > 0 ? (pesoTotalAcero / volConcreto).toFixed(2) : "0.00";
 }
 
-function cambiarValor(index, campo, delta) {
-    if (filasTabla[index][campo] + delta >= 0) {
-        filasTabla[index][campo] += delta;
-        renderizarTabla();
+function editarValorTabla(index, campo, valor) {
+    if(campo === 'desarrollo') {
+        filasTabla[index][campo] = parseFloat(valor) || 0;
+    } else {
+        filasTabla[index][campo] = valor;
+    }
+    renderizarTabla();
+}
+
+function cambiarValor(index, campo, delta, valorAuto = 0) {
+    if(campo === 'editableEmpalmes') {
+        let actual = filasTabla[index][campo] !== undefined ? filasTabla[index][campo] : valorAuto;
+        if (actual + delta >= 0) {
+            filasTabla[index][campo] = actual + delta;
+            renderizarTabla();
+        }
+    } else {
+        if (filasTabla[index][campo] + delta >= 0) {
+            filasTabla[index][campo] += delta;
+            renderizarTabla();
+        }
     }
 }
 
 document.getElementById("alturaTotal").addEventListener("change", generarFilasEstructurales);
 document.getElementById("deduccion").addEventListener("change", generarFilasEstructurales);
 document.getElementById("numElementos").addEventListener("input", renderizarTabla);
+document.getElementById("resistenciaConcreto").addEventListener("change", renderizarTabla);
 
 // ==========================================
 // 6. DIBUJO DEL CANVAS
@@ -299,7 +385,7 @@ function dibujarEnCanvas() {
 function limpiarDatos() {
     dbAutoCAD = { seccion: { perimetro: 0, area: 0, coords: [] }, aceroLong: { varillas: [] }, estribos: { polilineas: [] }, ganchos: { polilineas: [] }, mallaTrans: { polilineas: [] }, mallaVert: { polilineas: [] }};
     filasTabla = []; document.getElementById("csvFileInput").value = ""; ctx.clearRect(0, 0, canvas.width, canvas.height);
-    document.getElementById("nombreElemento").value = ""; // Limpiar también el nombre
+    document.getElementById("nombreElemento").value = ""; 
     document.getElementById("infoPerimetro").value = "-"; document.getElementById("infoArea").value = "-"; document.getElementById("infoEncofrado").value = "-";
     renderizarTabla();
 }
