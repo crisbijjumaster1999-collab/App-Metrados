@@ -8,129 +8,117 @@
 </head>
 <body>
 
+    <div class="navegacion-pestanas">
+        <button id="tab-metrado" class="btn-pestana activa" onclick="cambiarPestana('vista-metrado', 'tab-metrado')">🏠 Metrado de Elemento</button>
+        <button id="tab-bd" class="btn-pestana" onclick="cambiarPestana('vista-bd', 'tab-bd')">📊 Base de Datos General</button>
+    </div>
+
     <div id="modalConfig" class="modal-oculto">
         <div class="modal-contenido">
             <div class="modal-header">
                 <h3>⚙️ Configuración (Recubrimiento y Ganchos)</h3>
                 <button class="btn-cerrar-modal" onclick="cerrarModalConfig(false)">&times;</button>
             </div>
-            
             <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px; font-weight: bold; background-color: #f1f5f9; padding: 10px; border-radius: 8px;">
                 <label>Recubrimiento Global (m):</label>
                 <input type="number" step="0.001" id="recubrimientoModalInput" value="0.04" style="width: 70px; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px;">
             </div>
-
             <table class="tabla-config">
-                <thead>
-                    <tr>
-                        <th>Ø</th>
-                        <th>Peso (kg/m)</th>
-                        <th>Long. Empalme (m)</th>
-                        <th>Patas 135° Estribo (m)</th> </tr>
-                </thead>
-                <tbody id="tablaConfigCuerpo">
-                    </tbody>
+                <thead><tr><th>Ø</th><th>Peso (kg/m)</th><th>Long. Empalme (m)</th><th>Patas 135° Estribo (m)</th></tr></thead>
+                <tbody id="tablaConfigCuerpo"></tbody>
             </table>
             <button class="btn-guardar" onclick="cerrarModalConfig(true)">Guardar y Recalcular</button>
         </div>
     </div>
 
-    <div class="contenedor-principal">
+    <div id="vista-metrado" class="contenedor-principal vista-activa">
         <div class="panel-izquierdo">
-            
             <div class="encabezado-controles">
                 <h2>Control de Metrado</h2>
                 <button class="btn-config" onclick="abrirModalConfig()">⚙️ Config. Avanzada</button>
             </div>
-
             <div class="botones-accion">
                 <label for="csvFileInput" class="btn-importar">📂 Importar CSV</label>
                 <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
+                <button class="btn-guardar-top" onclick="guardarEnBaseDatos()">💾 Guardar Datos</button>
                 <button id="btnLimpiar" class="btn-limpiar">🗑️ Limpiar</button>
             </div>
-
             <div class="bloque-superior">
-                
                 <div class="seccion-bloque variables-caja">
                     <h3>Variables del Elemento</h3>
-                    <div class="fila-input">
-                        <label>Nombre Elemento:</label>
-                        <input type="text" id="nombreElemento" placeholder="Ej: C1 S5-S1" style="width: 100px; text-align: left; background-color: white;">
-                    </div>
-                    <div class="fila-input">
-                        <label>Tipo Elemento:</label>
-                        <select id="tipoElemento" style="width: 110px;">
-                            <option value="columna">Columna</option>
-                            <option value="placa" selected>Placa</option>
-                        </select>
-                    </div>
+                    <div class="fila-input"><label>Nombre Elemento:</label><input type="text" id="nombreElemento" placeholder="Ej: C1 S5-S1" style="width: 100px; text-align: left; background-color: white;"></div>
+                    <div class="fila-input"><label>Zona:</label><select id="zonaElemento" style="width: 130px;"><option value="SUB-ESTRUCTURA">Sub-Estructura</option><option value="SUPER-ESTRUCTURA" selected>Super-Estructura</option></select></div>
+                    <div class="fila-input"><label>Tipo Elemento:</label><select id="tipoElemento" style="width: 110px;"><option value="COLUMNAS">Columna</option><option value="PLACAS" selected>Placa</option></select></div>
                     <div class="fila-input"><label>Altura (H):</label><div class="input-grupo"><input type="number" id="alturaTotal" value="3.00" step="0.05"><span>m</span></div></div>
                     <div class="fila-input"><label>Deducción (Viga/Losa):</label><div class="input-grupo"><input type="number" id="deduccion" value="0.20" step="0.05"><span>m</span></div></div>
-                    <div class="fila-input">
-                        <label>f'c:</label>
-                        <select id="resistenciaConcreto" style="width: 110px;">
-                            <option value="100">100 kg/cm²</option>
-                            <option value="210">210 kg/cm²</option>
-                            <option value="245">245 kg/cm²</option>
-                            <option value="280" selected>280 kg/cm²</option>
-                            <option value="350">350 kg/cm²</option>
-                            <option value="420">420 kg/cm²</option>
-                        </select>
-                    </div>
-                    
+                    <div class="fila-input"><label>f'c:</label><select id="resistenciaConcreto" style="width: 110px;"><option value="100">100 kg/cm²</option><option value="210">210 kg/cm²</option><option value="245">245 kg/cm²</option><option value="280" selected>280 kg/cm²</option><option value="350">350 kg/cm²</option><option value="420">420 kg/cm²</option></select></div>
                     <hr>
                     <div class="fila-input"><label>N° Elementos:</label><div class="input-grupo"><input type="number" id="numElementos" value="1" min="1" step="1"><span>und</span></div></div>
                     <div class="fila-input"><label>Perímetro:</label><div class="input-grupo"><input type="text" id="infoPerimetro" value="-" disabled><span>m</span></div></div>
                     <div class="fila-input"><label>Área:</label><div class="input-grupo"><input type="text" id="infoArea" value="-" disabled><span>m²</span></div></div>
-                    <div class="fila-input">
-                        <label>Encofrado:</label>
-                        <select id="infoEncofrado" style="width: 100px;">
-                            <option value="-">-</option>
-                            <option value="Simple">Simple</option>
-                            <option value="Doble">Doble</option>
-                            <option value="Triple">Triple</option>
-                        </select>
-                    </div>
+                    <div class="fila-input"><label>Encofrado:</label><select id="infoEncofrado" style="width: 110px;"><option value="-">-</option><option value="SIMPLE">Simple</option><option value="DOBLE">Doble</option><option value="TRIPLE">Triple</option></select></div>
                 </div>
-
                 <div class="seccion-bloque caja-resultados">
                     <h3>Resumen Final</h3>
                     <div class="resultado-item"><span>Volumen Concreto:</span><strong><span id="res-concreto">0.00</span> m³</strong></div>
                     <div class="resultado-item"><span>Área Encofrado:</span><strong><span id="res-encofrado">0.00</span> m²</strong></div>
                     <div class="resultado-item"><span>Peso Acero Total:</span><strong><span id="res-acero">0.00</span> kg</strong></div>
                     <div class="resultado-item destacado"><span>Ratio (Cuantía):</span><strong><span id="res-ratio">0.00</span> kg/m³</strong></div>
-                    <button class="btn-guardar" style="margin-top:20px;">💾 Guardar en Base de Datos</button>
                 </div>
-
             </div>
-
             <div class="seccion-bloque">
                 <h3>Despiece de acero por piso</h3>
                 <div class="tabla-responsive">
                     <table class="tabla-aceros tabla-dinamica">
-                        <thead>
-                            <tr>
-                                <th style="width: 25%">Elemento de acero</th>
-                                <th>N°Sim.</th>
-                                <th>Ø</th>
-                                <th>Long. Pieza</th>
-                                <th>Desarr.(m)</th> <th>Tipo/Forma</th> <th>@</th>
-                                <th>N°x Piso</th>
-                                <th>N°Emp.</th>
-                                <th>Peso(kg)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaCuerpo">
-                            <tr><td colspan="10" class="fila-ejemplo">Importa un archivo CSV</td></tr> </tbody>
+                        <thead><tr><th style="width: 25%">Elemento de acero</th><th>N°Sim.</th><th>Ø</th><th>Long. Pieza</th><th>Desarr.(m)</th><th>Tipo/Forma</th><th>@</th><th>N°x Piso</th><th>N°Emp.</th><th>Peso(kg)</th></tr></thead>
+                        <tbody id="tablaCuerpo"><tr><td colspan="10" class="fila-ejemplo">Importa un archivo CSV</td></tr></tbody>
                     </table>
                 </div>
             </div>
-
         </div>
-
         <div class="panel-dibujo">
             <h2>Vista de Sección (Canvas)</h2>
             <canvas id="planoColumna" width="1000" height="800"></canvas>
+        </div>
+    </div>
+
+    <div id="vista-bd" class="vista-oculta" style="padding: 20px; overflow-y: auto; height: 100vh; box-sizing: border-box; background-color: #e2e8f0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1 style="margin: 0; color: #1e293b;">Centro de Control de Metrados</h1>
+            <button class="btn-importar" style="width: auto; margin: 0; background-color: #10b981; font-size: 16px; padding: 12px 24px;" onclick="exportarExcelCSV()">📥 Exportar a Excel (CSV)</button>
+        </div>
+
+        <div class="seccion-bloque" style="background-color: white; padding: 25px; border-top: 5px solid #2563eb;">
+            <h2 style="margin-top: 0; color: #1e293b;">1. Resumen Global (Presupuesto)</h2>
+            <div id="contenedor-resumen-global" style="display: flex; gap: 20px; flex-wrap: wrap;">
+                </div>
+        </div>
+
+        <div class="seccion-bloque" style="background-color: white; padding: 25px; border-top: 5px solid #8b5cf6;">
+            <h2 style="margin-top: 0; color: #1e293b;">2. Resumen Parcial por Elemento</h2>
+            <div class="tabla-responsive">
+                <table class="tabla-dinamica tabla-bd">
+                    <thead>
+                        <tr>
+                            <th>Nombre Elemento</th><th>Tipo</th><th>Cant.</th><th>f'c</th>
+                            <th style="background-color:#e0f2fe">Vol. Concreto (m³)</th>
+                            <th>Tipo Enc.</th><th style="background-color:#fef08a">Área Enc. (m²)</th>
+                            <th>Ø 1/4"</th><th>Ø 3/8"</th><th>Ø 1/2"</th><th>Ø 5/8"</th><th>Ø 3/4"</th><th>Ø 1"</th><th>Ø 1 3/8"</th>
+                            <th style="background-color:#fce7f3">Total Acero (kg)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaBaseDatos"><tr><td colspan="15" class="fila-ejemplo">Aún no hay elementos guardados.</td></tr></tbody>
+                    <tfoot id="tablaBaseDatosFooter" style="font-weight: bold; background-color: #f1f5f9; border-top: 2px solid #cbd5e1;"></tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div class="seccion-bloque" style="background-color: white; padding: 25px; border-top: 5px solid #f59e0b;">
+            <h2 style="margin-top: 0; color: #1e293b;">3. Recopilatorio Detallado y Editable</h2>
+            <p style="color: #64748b; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">Modifica cualquier valor y el sistema recalculará los totales globales automáticamente.</p>
+            <div id="contenedor-recopilatorio" style="display: flex; flex-direction: column; gap: 30px;">
+                <div class="fila-ejemplo" style="text-align: center;">Aún no hay elementos guardados.</div>
+            </div>
         </div>
     </div>
 
