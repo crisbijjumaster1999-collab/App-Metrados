@@ -64,6 +64,11 @@ function cerrarModalConfig(guardarCambios) {
 document.getElementById('csvFileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
+
+    // ¡NUEVO! Extraer el nombre del archivo sin el ".csv" y pegarlo en el input
+    let nombreSinExtension = file.name.replace(/\.[^/.]+$/, ""); // Borra la extensión
+    document.getElementById("nombreElemento").value = nombreSinExtension;
+
     const reader = new FileReader();
     reader.onload = function(e) { procesarCSV(e.target.result); };
     reader.readAsText(file, 'ISO-8859-1'); 
