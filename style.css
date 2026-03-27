@@ -6,6 +6,7 @@
     background-color: #1e293b;
     padding: 10px 20px 0 20px;
 }
+
 .btn-pestana {
     background-color: #334155;
     color: #94a3b8;
@@ -18,10 +19,305 @@
     margin-right: 5px;
     transition: 0.3s;
 }
-.btn-pestana:hover { background-color: #475569; color: white; }
-.btn-pestana.activa { background-color: #f1f5f9; color: #1e293b; border-bottom: none; }
-.vista-oculta { display: none !important; }
-.vista-activa { display: flex; }
+
+.btn-pestana:hover {
+    background-color: #475569;
+    color: white;
+}
+
+.btn-pestana.activa {
+    background-color: #f1f5f9;
+    color: #1e293b;
+    border-bottom: none;
+}
+
+.vista-oculta {
+    display: none !important;
+}
+
+.vista-activa {
+    display: flex;
+}
+
+/* =========================================
+   1. ESTILOS GLOBALES Y FONDOS
+   ========================================= */
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    background-color: #f1f5f9;
+    color: #1e293b;
+    overflow: hidden;
+}
+
+.contenedor-principal {
+    display: flex;
+    gap: 15px; 
+    padding: 15px; 
+    height: calc(100vh - 45px); /* Ajustado por la barra de pestañas */
+    box-sizing: border-box;
+}
+
+/* =========================================
+   2. PANELES PRINCIPALES (Layout 12/20 y 8/20)
+   ========================================= */
+.panel-izquierdo {
+    flex: 12; 
+    width: 60%;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding-right: 15px;
+}
+
+.panel-dibujo {
+    flex: 8; 
+    width: 40%;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.panel-dibujo h2 {
+    margin-top: 0;
+    font-size: 16px;
+    color: #475569;
+    margin-bottom: 10px;
+}
+
+canvas {
+    background-color: #e2e8f0;
+    border: 1px solid #94a3b8;
+    border-radius: 8px;
+    width: 100%;
+    height: auto; 
+    max-height: 85vh;
+    object-fit: contain; 
+}
+
+/* =========================================
+   3. BLOQUES Y CAJAS BLANCAS
+   ========================================= */
+.seccion-bloque {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.seccion-bloque h3 {
+    margin-top: 0;
+    font-size: 14px;
+    color: #64748b;
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+}
+
+.bloque-superior {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.variables-caja { flex: 1.2; margin-bottom: 0; } 
+.caja-resultados { flex: 0.8; margin-bottom: 0; }
+
+hr {
+    border: 0;
+    border-top: 1px dashed #cbd5e1;
+    margin: 12px 0;
+}
+
+/* =========================================
+   4. BOTONES Y CONTROLES
+   ========================================= */
+.encabezado-controles {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.encabezado-controles h2 { font-size: 20px; margin: 0; }
+
+.botones-accion {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.btn-importar, .btn-limpiar, .btn-config, .btn-guardar, .btn-guardar-top {
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    text-align: center;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.btn-importar { background-color: #2563eb; color: white; flex: 1; display: block; }
+.btn-guardar-top { background-color: #10b981; color: white; flex: 1;}
+.btn-limpiar { background-color: #ef4444; color: white; flex: 1; }
+.btn-config { background-color: #64748b; color: white; padding: 6px 12px; font-size: 12px;}
+.btn-guardar { background-color: #10b981; color: white; width: 100%; margin-top: 15px;}
+
+.btn-importar:hover { background-color: #1d4ed8; }
+.btn-limpiar:hover { background-color: #dc2626; }
+.btn-config:hover { background-color: #475569; }
+.btn-guardar:hover { background-color: #059669; }
+.btn-guardar-top:hover { background-color: #059669;}
+
+/* =========================================
+   5. INPUTS Y FORMULARIOS
+   ========================================= */
+.fila-input {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.fila-input select, .fila-input input {
+    padding: 4px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    outline: none;
+    background-color: #f8fafc;
+    font-size: 13px;
+}
+
+.input-grupo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 90px;
+    justify-content: flex-end;
+}
+
+.input-grupo input {
+    width: 50px;
+    text-align: center;
+}
+
+/* =========================================
+   6. CAJA OSCURA DE RESUMEN
+   ========================================= */
+.caja-resultados {
+    background-color: #1e293b; 
+    color: #f8fafc;
+    border: none;
+}
+
+.caja-resultados h3 {
+    color: #cbd5e1;
+    border-bottom-color: #334155;
+}
+
+.resultado-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.destacado {
+    color: #34d399; 
+    font-size: 16px;
+    border-top: 1px dashed #475569;
+    padding-top: 10px;
+    margin-top: 10px;
+}
+
+/* =========================================
+   7. TABLAS DINÁMICAS Y BASE DE DATOS
+   ========================================= */
+.tabla-responsive {
+    overflow-x: auto;
+}
+
+.tabla-dinamica {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    text-align: center;
+    table-layout: fixed; 
+}
+
+.tabla-dinamica th {
+    background-color: #f8fafc;
+    padding: 8px 4px;
+    color: #64748b;
+    border-bottom: 2px solid #e2e8f0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tabla-dinamica td {
+    padding: 6px 4px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+}
+
+.fila-ejemplo {
+    color: #94a3b8;
+    font-style: italic;
+    padding: 15px !important;
+}
+
+.input-editable-tabla {
+    width: 90%;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 4px 2px;
+    text-align: center;
+    font-size: 12px;
+}
+
+.control-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.control-btn span {
+    width: 18px;
+    font-weight: bold;
+}
+
+.control-btn button {
+    background-color: #ffffff;
+    color: #ef4444;
+    border: 1px solid #cbd5e1;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    padding: 0;
+}
+
+.control-btn button:hover {
+    background-color: #fee2e2;
+    border-color: #f87171;
+}
 
 /* Estilos Tabla Resumen Global (Azul) */
 .tabla-global {
@@ -30,6 +326,7 @@
     font-size: 13px;
     border: 1px solid #cbd5e1;
 }
+
 .tabla-global td, .tabla-global th {
     border: 1px solid #cbd5e1;
     padding: 6px 10px;
@@ -40,82 +337,73 @@
 .tabla-bd td { border-right: 1px solid #cbd5e1; font-size: 12px;}
 
 /* =========================================
-   1. ESTILOS GLOBALES Y FONDOS
+   8. MODAL Y TABLA CONFIG 
    ========================================= */
-body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background-color: #f1f5f9; color: #1e293b; overflow: hidden;}
-.contenedor-principal { display: flex; gap: 15px; padding: 15px; height: calc(100vh - 45px); box-sizing: border-box;}
+.modal-oculto {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(15, 23, 42, 0.75); 
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
 
-/* =========================================
-   2. PANELES PRINCIPALES
-   ========================================= */
-.panel-izquierdo { flex: 12; width: 60%; display: flex; flex-direction: column; overflow-y: auto; padding-right: 15px;}
-.panel-dibujo { flex: 8; width: 40%; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: center;}
-.panel-dibujo h2 { margin-top: 0; font-size: 16px; color: #475569; margin-bottom: 10px; }
-canvas { background-color: #e2e8f0; border: 1px solid #94a3b8; border-radius: 8px; width: 100%; height: auto; max-height: 85vh; object-fit: contain; }
+.modal-contenido {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 16px;
+    width: 550px; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
 
-/* =========================================
-   3. BLOQUES Y CAJAS BLANCAS
-   ========================================= */
-.seccion-bloque { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
-.seccion-bloque h3 { margin-top: 0; font-size: 14px; color: #64748b; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 12px;}
-.bloque-superior { display: flex; gap: 15px; margin-bottom: 15px;}
-.variables-caja { flex: 1.2; margin-bottom: 0; } .caja-resultados { flex: 0.8; margin-bottom: 0; }
-hr { border: 0; border-top: 1px dashed #cbd5e1; margin: 12px 0;}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #f1f5f9;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+}
 
-/* =========================================
-   4. BOTONES Y CONTROLES
-   ========================================= */
-.encabezado-controles { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;}
-.encabezado-controles h2 { font-size: 20px; margin: 0; }
-.botones-accion { display: flex; gap: 10px; margin-bottom: 15px;}
-.btn-importar, .btn-limpiar, .btn-config, .btn-guardar, .btn-guardar-top { padding: 10px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; text-align: center; transition: all 0.2s ease; font-size: 14px;}
-.btn-importar { background-color: #2563eb; color: white; flex: 1; display: block; }
-.btn-guardar-top { background-color: #10b981; color: white; flex: 1;}
-.btn-limpiar { background-color: #ef4444; color: white; flex: 1; }
-.btn-config { background-color: #64748b; color: white; padding: 6px 12px; font-size: 12px;}
-.btn-importar:hover { background-color: #1d4ed8; } .btn-limpiar:hover { background-color: #dc2626; } .btn-config:hover { background-color: #475569; } .btn-guardar-top:hover {background-color: #059669;}
-
-/* =========================================
-   5. INPUTS Y FORMULARIOS
-   ========================================= */
-.fila-input { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; font-weight: 500;}
-.fila-input select, .fila-input input { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; background-color: #f8fafc; font-size: 13px;}
-.input-grupo { display: flex; align-items: center; gap: 6px; width: 90px; justify-content: flex-end;}
-.input-grupo input { width: 50px; text-align: center;}
-
-/* =========================================
-   6. CAJA OSCURA DE RESUMEN
-   ========================================= */
-.caja-resultados { background-color: #1e293b; color: #f8fafc; border: none;}
-.caja-resultados h3 { color: #cbd5e1; border-bottom-color: #334155;}
-.resultado-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;}
-.destacado { color: #34d399; font-size: 16px; border-top: 1px dashed #475569; padding-top: 10px; margin-top: 10px;}
-
-/* =========================================
-   7. TABLAS DINÁMICAS
-   ========================================= */
-.tabla-responsive { overflow-x: auto;}
-.tabla-dinamica { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; table-layout: fixed; }
-.tabla-dinamica th { background-color: #f8fafc; padding: 8px 4px; color: #64748b; border-bottom: 2px solid #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
-.tabla-dinamica td { padding: 6px 4px; border-bottom: 1px solid #e2e8f0; vertical-align: middle;}
-.fila-ejemplo { color: #94a3b8; font-style: italic; padding: 15px !important;}
-.input-editable-tabla { width: 90%; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 2px; text-align: center; font-size: 12px;}
-
-.control-btn { display: flex; align-items: center; justify-content: center; gap: 4px;}
-.control-btn span { width: 18px; font-weight: bold;}
-.control-btn button { background-color: #ffffff; color: #ef4444; border: 1px solid #cbd5e1; width: 20px; height: 20px; border-radius: 4px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 12px; padding: 0;}
-.control-btn button:hover { background-color: #fee2e2; border-color: #f87171;}
-
-/* =========================================
-   8. MODAL 
-   ========================================= */
-.modal-oculto { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.75); z-index: 1000; justify-content: center; align-items: center;}
-.modal-contenido { background-color: #ffffff; padding: 20px; border-radius: 16px; width: 550px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);}
-.modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; margin-bottom: 15px; padding-bottom: 8px;}
 .modal-header h3 { margin: 0; font-size: 18px; }
-.btn-cerrar-modal { background: transparent; border: none; font-size: 20px; cursor: pointer; color: #94a3b8; transition: color 0.2s;} .btn-cerrar-modal:hover { color: #ef4444; }
-.tabla-config { width: 100%; margin-bottom: 15px; border-collapse: collapse;}
-.tabla-config th { background-color: #f8fafc; padding: 6px; font-size: 12px; color: #64748b; text-align: center;}
-.tabla-config td { padding: 4px; border-bottom: 1px solid #e2e8f0; text-align: center;}
-.tabla-config input { width: 70px; text-align: center; padding: 3px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px;}
-.btn-guardar { background-color: #10b981; color: white; width: 100%; padding: 10px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; transition: 0.2s;} .btn-guardar:hover { background-color: #059669;}
+
+.btn-cerrar-modal {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #94a3b8;
+    transition: color 0.2s;
+}
+
+.btn-cerrar-modal:hover { color: #ef4444; }
+
+.tabla-config {
+    width: 100%;
+    margin-bottom: 15px;
+    border-collapse: collapse;
+}
+
+.tabla-config th {
+    background-color: #f8fafc;
+    padding: 6px;
+    font-size: 12px;
+    color: #64748b;
+    text-align: center;
+}
+
+.tabla-config td {
+    padding: 4px; 
+    border-bottom: 1px solid #e2e8f0; 
+    text-align: center;
+}
+
+.tabla-config input {
+    width: 70px; 
+    text-align: center; 
+    padding: 3px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 12px;
+}
