@@ -97,24 +97,51 @@ document.getElementById('csvFileInput').addEventListener('change', function(e) {
     reader.readAsText(file, 'ISO-8859-1'); 
 });
 
+// ==========================================
+// Reemplaza esta función completa:
+// ==========================================
 function procesarCSV(csv) {
     dbAutoCAD = { seccion: { perimetro: 0, area: 0, coords: [] }, aceroLong: { varillas: [] }, estribos: { polilineas: [] }, ganchos: { polilineas: [] }, mallaTrans: { polilineas: [] }, mallaVert: { polilineas: [] } };
     const lineas = csv.split('\n');
     for (let i = 1; i < lineas.length; i++) {
-        const cols = lineas[i].split(','); if (cols.length < 5) continue;
-        const capa = cols[0].toUpperCase(), tipoObj = cols[1].toUpperCase(), etiqueta = cols[2];
-        const x = parseFloat(cols[3]), y = parseFloat(cols[4]), valor1 = cols[5], valor2 = cols[6];
-        const coordsExtra = cols[7] ? cols[7].trim() : "";
-        const idEtiqueta = cols[8] ? cols[8].trim() : "-"; // NUEVO: Leemos el ID de la etiqueta
+        const cols = lineas[i].split(','); 
+        if (cols.length < 5) continue;
         
-        if (capa.includes("SECCI") && tipoObj === "POLILINEA") { dbAutoCAD.seccion.perimetro = parseFloat(valor1); dbAutoCAD.seccion.area = parseFloat(valor2); dbAutoCAD.seccion.coords = parsearCoordenadas(coordsExtra); }
-        else if (capa.includes("LONGITUDINAL") && tipoObj === "VARILLA") { dbAutoCAD.aceroLong.varillas.push({ x, y, texto: etiqueta, id: idEtiqueta }); }
-        else if (capa.includes("ESTRIBOS") && tipoObj === "POLILINEA") { dbAutoCAD.estribos.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta, id: idEtiqueta }); }
-        else if (capa.includes("GANCHOS") && tipoObj === "POLILINEA") { dbAutoCAD.ganchos.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta, id: idEtiqueta }); }
-        else if (capa.includes("MALLA TRANS") && tipoObj === "POLILINEA") { dbAutoCAD.mallaTrans.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta, id: idEtiqueta }); }
-        else if (capa.includes("MALLA VERT") && tipoObj === "POLILINEA") { dbAutoCAD.mallaVert.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta, id: idEtiqueta }); }
+        const capa = cols[0].toUpperCase();
+        const tipoObj = cols[1].toUpperCase();
+        const etiqueta = cols[2];
+        const x = parseFloat(cols[3]);
+        const y = parseFloat(cols[4]);
+        const valor1 = cols[5] || "";
+        const valor2 = cols[6] || "";
+        const coordsExtra = cols[7] ? cols[7].trim() : "";
+        
+        // LA CORRECCIÓN CLAVE: Leemos el ID siempre de la última columna del CSV
+        const idEtiqueta = cols[cols.length - 1] ? cols[cols.length - 1].trim() : "-"; 
+        
+        if (capa.includes("SECCI") && tipoObj === "POLILINEA") { 
+            dbAutoCAD.seccion.perimetro = parseFloat(valor1); 
+            dbAutoCAD.seccion.area = parseFloat(valor2); 
+            dbAutoCAD.seccion.coords = parsearCoordenadas(coordsExtra); 
+        }
+        else if (capa.includes("LONGITUDINAL") && tipoObj === "VARILLA") { 
+            dbAutoCAD.aceroLong.varillas.push({ x, y, texto: etiqueta, id: idEtiqueta }); 
+        }
+        else if (capa.includes("ESTRIBOS") && tipoObj === "POLILINEA") { 
+            dbAutoCAD.estribos.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta, id: idEtiqueta }); 
+        }
+        else if (capa.includes("GANCHOS") && tipoObj === "POLILINEA") { 
+            dbAutoCAD.ganchos.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta, id: idEtiqueta }); 
+        }
+        else if (capa.includes("MALLA TRANS") && tipoObj === "POLILINEA") { 
+            dbAutoCAD.mallaTrans.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta, id: idEtiqueta }); 
+        }
+        else if (capa.includes("MALLA VERT") && tipoObj === "POLILINEA") { 
+            dbAutoCAD.mallaVert.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta, id: idEtiqueta }); 
+        }
     }
-    dibujarEnCanvas(); generarFilasEstructurales(); 
+    dibujarEnCanvas(); 
+    generarFilasEstructurales(); 
 }
 
 function parsearCoordenadas(str) {
@@ -131,6 +158,9 @@ function decodificarEtiqueta(texto, esLongitudinal) {
 // ==========================================
 // 4. GENERACIÓN DE FILAS INDIVIDUALES Y AGRUPADAS
 // ==========================================
+// ==========================================
+// Reemplaza esta función completa:
+// ==========================================
 function generarFilasEstructurales() {
     filasTabla = [];
     let alturaH = parseFloat(document.getElementById("alturaTotal").value) || 3;
@@ -143,10 +173,9 @@ function generarFilasEstructurales() {
     if(dbAutoCAD.seccion.perimetro === 0) tipoEnc = "-";
     document.getElementById("infoEncofrado").value = tipoEnc;
 
-    // --- 1. ACERO LONGITUDINAL (Agrupado estrictamente por Etiqueta) ---
+    // --- 1. ACERO LONGITUDINAL ---
     let gruposLong = {};
     dbAutoCAD.aceroLong.varillas.forEach(varilla => { 
-        // Si no tiene ID (huerfano), le damos uno aleatorio para que se liste solo
         let idValido = varilla.id !== "-" ? varilla.id : "huerfano_" + Math.random(); 
         if (!gruposLong[idValido]) gruposLong[idValido] = { texto: varilla.texto, count: 0 };
         gruposLong[idValido].count++;
@@ -155,11 +184,17 @@ function generarFilasEstructurales() {
     let contLong = 1;
     for (let id in gruposLong) {
         let g = gruposLong[id];
+        
+        // CORRECCIÓN MAGISTRAL: Si un círculo extra no fue tocado por la flecha, 
+        // lo ignoramos porque su cantidad ya está cubierta en el texto de la etiqueta principal
+        if (id.startsWith("huerfano_") && g.texto === "-") {
+            continue;
+        }
+
         let d = decodificarEtiqueta(g.texto, true); 
         if (d.cant > 0 || g.texto === "-") {
-            // Si la etiqueta dice "4 %%c 5/8", toma 4. Si no, cuenta los círculos.
             let cantReal = d.cant > 0 ? d.cant : g.count; 
-            let diamReal = d.diam !== "-" ? d.diam : "5/8\""; // Diametro por defecto si es huérfano
+            let diamReal = d.diam !== "-" ? d.diam : "5/8\""; 
 
             filasTabla.push({ 
                 nombre: "Acero longitudinal " + contLong, 
@@ -188,8 +223,6 @@ function generarFilasEstructurales() {
             let long = calcLongPieza(pol.long, alturaH); 
             let espacReal = d.espac || 0;
             
-            // LA MAGIA: Agrupamos única y exclusivamente por el ID del Multileader
-            // Si el objeto no tiene líder (huérfano), lo agrupamos por sus dimensiones como plan B.
             let llave = pol.id !== "-" ? pol.id : (long.toFixed(3) + "_" + d.diam + "_" + espacReal); 
             
             if (!grupos[llave]) { 
@@ -201,7 +234,6 @@ function generarFilasEstructurales() {
 
         let cont = 1; 
         let keys = Object.keys(grupos);
-        // Ordenamos visualmente las filas por la longitud de la pieza
         keys.sort((a, b) => grupos[b].longPieza - grupos[a].longPieza);
 
         for (const k of keys) {
@@ -209,7 +241,7 @@ function generarFilasEstructurales() {
             let nombreFinal = prefijoNombre + (keys.length > 1 ? ` ${cont}` : "");
             let isStirrup = prefijoNombre.includes("Estribo"); 
             let des = 0;
-            let diamFinal = g.diam !== "-" ? g.diam : "3/8\""; // Diametro por defecto si es huérfano
+            let diamFinal = g.diam !== "-" ? g.diam : "3/8\""; 
             
             if(isStirrup) { let conf = configAceros[diamFinal] || { gancho135: 0 }; des = conf.gancho135 * 2; }
             
