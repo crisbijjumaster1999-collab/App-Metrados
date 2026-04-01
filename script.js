@@ -693,20 +693,53 @@ function exportarExcelCompleto() {
     autoSizeColumns(wsParcial, dataParcial);
     XLSX.utils.book_append_sheet(wb, wsParcial, "Resumen Parcial");
 
-    // --- HOJA 3: DESPIECE DETALLADO ---
-    let dataDespiece = [["Elemento", "Zona", "Tipo", "Elemento Acero", "Similares", "Diámetro", "Long. Pieza (m)", "Desarrollo (m)", "Forma", "Espaciamiento (m)", "N° x Piso", "Empalmes", "Peso (kg)"]];
-    baseDatosProyecto.forEach(item => {
+    // --- HOJA 3: DESPIECE DETALLADO (FORMATO POR BLOQUES) ---
+    let dataDespiece = [];
+    
+    baseDatosProyecto.forEach((item, index) => {
+        // 1. Fila de Encabezados de los Datos del Elemento
+        dataDespiece.push(["Nombre Elemento", "Zona", "Tipo", "Altura (m)", "Deducción (m)", "f'c", "N° Elem."]);
+        
+        // 2. Fila con los Datos del Elemento
+        dataDespiece.push([
+            item.nombre, 
+            item.zona, 
+            item.tipo, 
+            parseFloat(item.h), 
+            parseFloat(item.deduccion), 
+            item.fc, 
+            parseInt(item.nElem)
+        ]);
+        
+        // 3. Fila de Encabezados del Despiece de Acero
+        dataDespiece.push(["Elemento Acero", "Similares", "Diámetro", "Long. Pieza (m)", "Desarrollo (m)", "Forma", "Espaciamiento (m)", "N° x Piso", "Empalmes", "Peso (kg)"]);
+        
+        // 4. Filas de Datos del Despiece de Acero
         item.filas.forEach(f => {
+            let espac = f.espac === "-" || f.espac === 0 ? "-" : parseFloat(f.espac);
+            let numPiso = f.nombre.includes("longitudinal") ? "-" : parseInt(f.numXPiso);
+            let emp = f.editableEmpalmes !== undefined ? parseInt(f.editableEmpalmes) : parseInt(f.numEmpAuto);
+            
             dataDespiece.push([
-                item.nombre, item.zona, item.tipo, f.nombre, parseInt(f.similares), f.diam, 
-                parseFloat(f.longPieza.toFixed(3)), parseFloat(f.desarrollo.toFixed(3)), f.forma, 
-                (f.espac === "-" || f.espac === 0 ? "-" : parseFloat(f.espac)), 
-                (f.nombre.includes("longitudinal") ? "-" : parseInt(f.numXPiso)), 
-                (f.editableEmpalmes !== undefined ? parseInt(f.editableEmpalmes) : parseInt(f.numEmpAuto)), 
+                f.nombre, 
+                parseInt(f.similares), 
+                f.diam, 
+                parseFloat(f.longPieza.toFixed(3)), 
+                parseFloat(f.desarrollo.toFixed(3)), 
+                f.forma, 
+                espac, 
+                numPiso, 
+                emp, 
                 parseFloat(f.pesoCalculado.toFixed(2))
             ]);
         });
+        
+        // 5. Agregar una fila vacía como separador visual entre diferentes elementos (excepto al final)
+        if (index < baseDatosProyecto.length - 1) {
+            dataDespiece.push([]);
+        }
     });
+
     let wsDespiece = XLSX.utils.aoa_to_sheet(dataDespiece);
     autoSizeColumns(wsDespiece, dataDespiece);
     XLSX.utils.book_append_sheet(wb, wsDespiece, "Despiece Editable");
