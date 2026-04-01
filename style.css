@@ -1,10 +1,11 @@
 /* =========================================
-   0. SISTEMA DE PESTAÑAS
+   0. SISTEMA DE PESTAÑAS Y HERRAMIENTAS
    ========================================= */
 .navegacion-pestanas {
     display: flex;
     background-color: #1e293b;
     padding: 10px 20px 0 20px;
+    /* Las propiedades de flex-wrap y space-between se manejan desde el HTML para alinear los nuevos botones */
 }
 
 .btn-pestana {
@@ -252,7 +253,7 @@ hr {
     border-collapse: collapse;
     font-size: 12px;
     text-align: center;
-    table-layout: auto; /* Permite que las celdas se ajusten al contenido */
+    table-layout: auto; 
 }
 
 .tabla-dinamica th {
@@ -286,14 +287,15 @@ hr {
     font-size: 12px;
 }
 
-/* Oculta las flechas nativas de los input number */
+/* Oculta las flechas nativas de los input number y corrige la alerta del editor */
 .input-editable-tabla[type="number"]::-webkit-inner-spin-button,
 .input-editable-tabla[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 .input-editable-tabla[type="number"] {
-  -moz-appearance: textfield;
+  -moz-appearance: textfield; /* Para Firefox */
+  appearance: textfield;      /* Estándar moderno (Quita la alerta amarilla) */
 }
 
 /* Botones de + y - dentro de la tabla */

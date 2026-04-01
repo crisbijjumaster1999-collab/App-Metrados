@@ -97,9 +97,6 @@ document.getElementById('csvFileInput').addEventListener('change', function(e) {
     reader.readAsText(file, 'ISO-8859-1'); 
 });
 
-// ==========================================
-// Reemplaza esta función completa:
-// ==========================================
 function procesarCSV(csv) {
     dbAutoCAD = { seccion: { perimetro: 0, area: 0, coords: [] }, aceroLong: { varillas: [] }, estribos: { polilineas: [] }, ganchos: { polilineas: [] }, mallaTrans: { polilineas: [] }, mallaVert: { polilineas: [] } };
     const lineas = csv.split('\n');
@@ -116,7 +113,7 @@ function procesarCSV(csv) {
         const valor2 = cols[6] || "";
         const coordsExtra = cols[7] ? cols[7].trim() : "";
         
-        // LA CORRECCIÓN CLAVE: Leemos el ID siempre de la última columna del CSV
+        // LA CORRECCIÓN CLAVE: Leemos el ID siempre de la última columna
         const idEtiqueta = cols[cols.length - 1] ? cols[cols.length - 1].trim() : "-"; 
         
         if (capa.includes("SECCI") && tipoObj === "POLILINEA") { 
@@ -158,9 +155,6 @@ function decodificarEtiqueta(texto, esLongitudinal) {
 // ==========================================
 // 4. GENERACIÓN DE FILAS INDIVIDUALES Y AGRUPADAS
 // ==========================================
-// ==========================================
-// Reemplaza esta función completa:
-// ==========================================
 function generarFilasEstructurales() {
     filasTabla = [];
     let alturaH = parseFloat(document.getElementById("alturaTotal").value) || 3;
@@ -185,11 +179,7 @@ function generarFilasEstructurales() {
     for (let id in gruposLong) {
         let g = gruposLong[id];
         
-        // CORRECCIÓN MAGISTRAL: Si un círculo extra no fue tocado por la flecha, 
-        // lo ignoramos porque su cantidad ya está cubierta en el texto de la etiqueta principal
-        if (id.startsWith("huerfano_") && g.texto === "-") {
-            continue;
-        }
+        if (id.startsWith("huerfano_") && g.texto === "-") { continue; }
 
         let d = decodificarEtiqueta(g.texto, true); 
         if (d.cant > 0 || g.texto === "-") {
@@ -328,7 +318,6 @@ function cambiarValor(index, campo, delta, valorAuto = 0) {
     if(campo === 'editableEmpalmes') { let actual = filasTabla[index][campo] !== undefined ? filasTabla[index][campo] : valorAuto; if (actual + delta >= 0) { filasTabla[index][campo] = actual + delta; renderizarTabla(); } } 
     else { let actual = parseFloat(filasTabla[index][campo]) || 0; let newVal = actual + delta; if (newVal >= 0) { filasTabla[index][campo] = parseFloat(newVal.toFixed(3)); renderizarTabla(); } }
 }
-
 
 function renderizarTabla() {
     let multiplicadorGlobal = parseInt(document.getElementById("numElementos").value) || 1;
@@ -508,6 +497,9 @@ function renderizarRecopilatorioCompleto() {
     renderizarRecopilatorioHTML();
     renderizarBDParcial();
     renderizarBDGlobal();
+    
+    // Auto-guardado invisible en el navegador
+    localStorage.setItem('metradoAutoSave', JSON.stringify(baseDatosProyecto));
 }
 
 function renderizarBDParcial() {
@@ -637,76 +629,133 @@ function borrarDeBD(idx) {
 }
 
 // ==========================================
-// 8. FUNCIONES DE EXPORTACIÓN A EXCEL
+// 8. EXPORTACIÓN MAESTRA (EXCEL Y BACKUPS)
 // ==========================================
-function descargarCSV(contenido, nombreArchivo) {
-    const blob = new Blob(["\uFEFF" + contenido], { type: 'text/csv;charset=utf-8;' }); 
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", nombreArchivo);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
 
-function exportarExcelParcial() {
-    if(baseDatosProyecto.length === 0) { alert("No hay datos para exportar."); return; }
-    let csv = "N,Nombre Elemento,Tipo,N Elem.,f'c,Vol. Concreto (m3),Tipo Enc.,Area Enc. (m2),Diam. 6mm (kg),Diam. 8mm (kg),Diam. 1/4 (kg),Diam. 3/8 (kg),Diam. 1/2 (kg),Diam. 5/8 (kg),Diam. 3/4 (kg),Diam. 1 (kg),Diam. 1 3/8 (kg),Total Acero (kg),Ratio (kg/m3)\n";
-    baseDatosProyecto.forEach((item, i) => {
-        let fila = [ i+1, item.nombre, item.tipo, item.nElem, item.fc, item.resultados.volConcreto.toFixed(2), item.encTipo, item.resultados.areaEncofrado.toFixed(2),
-            (item.resultados.pesosPorDiametro['6 mm']||0).toFixed(2), (item.resultados.pesosPorDiametro['8 mm']||0).toFixed(2), (item.resultados.pesosPorDiametro['1/4"']||0).toFixed(2), (item.resultados.pesosPorDiametro['3/8"']||0).toFixed(2),
-            (item.resultados.pesosPorDiametro['1/2"']||0).toFixed(2), (item.resultados.pesosPorDiametro['5/8"']||0).toFixed(2), (item.resultados.pesosPorDiametro['3/4"']||0).toFixed(2), (item.resultados.pesosPorDiametro['1"']||0).toFixed(2),
-            (item.resultados.pesosPorDiametro['1 3/8"']||0).toFixed(2), item.resultados.pesoTotalAcero.toFixed(2), item.resultados.ratio.toFixed(2)
-        ];
-        csv += fila.join(",") + "\n";
+function autoSizeColumns(ws, data) {
+    let colWidths = [];
+    data.forEach(row => {
+        row.forEach((cell, i) => {
+            let cellLength = cell ? cell.toString().length : 0;
+            if (!colWidths[i] || colWidths[i] < cellLength) colWidths[i] = cellLength;
+        });
     });
-    descargarCSV(csv, "Resumen_Parcial_Elementos.csv");
+    ws['!cols'] = colWidths.map(w => ({wch: w + 2})); 
 }
 
-function exportarExcelGlobal() {
+function exportarExcelCompleto() {
     if(baseDatosProyecto.length === 0) { alert("No hay datos para exportar."); return; }
-    let csv = "ZONA,TIPO,PARTIDA,CANTIDAD,UNIDAD\n";
+    
+    let wb = XLSX.utils.book_new();
+
+    // --- HOJA 1: RESUMEN GLOBAL ---
+    let dataGlobal = [["ZONA", "TIPO", "PARTIDA", "CANTIDAD", "UNIDAD"]];
     let zonas = ["SUB-ESTRUCTURA", "SUPER-ESTRUCTURA"];
     let tipos = ["COLUMNAS", "PLACAS"];
     let fcs = ["100", "210", "245", "280", "350", "420"];
-
     zonas.forEach(z => {
         tipos.forEach(t => {
             let elems = baseDatosProyecto.filter(e => e.zona === z && e.tipo === t);
             if(elems.length > 0) {
                 fcs.forEach(fc => {
                     let vol = elems.filter(e => e.fc === fc).reduce((sum, e) => sum + e.resultados.volConcreto, 0);
-                    if(vol > 0) csv += `${z},${t},CONCRETO F'C=${fc} KG/CM2,${vol.toFixed(2)},m3\n`;
+                    if(vol > 0) dataGlobal.push([z, t, `CONCRETO F'C=${fc} KG/CM2`, parseFloat(vol.toFixed(2)), "m³"]);
                 });
-                let encTipos = ["SIMPLE", "DOBLE", "TRIPLE"];
-                encTipos.forEach(enc => {
+                ["SIMPLE", "DOBLE", "TRIPLE"].forEach(enc => {
                     let area = elems.filter(e => e.encTipo === enc).reduce((sum, e) => sum + e.resultados.areaEncofrado, 0);
                     let nombreEnc = enc === "SIMPLE" ? "ALTURA SIMPLE" : (enc === "DOBLE" ? "- 2H" : "- 3H");
-                    if(area > 0) csv += `${z},${t},ENCOFRADO Y DESENCOFRADO ${nombreEnc},${area.toFixed(2)},m2\n`;
+                    if(area > 0) dataGlobal.push([z, t, `ENCOFRADO Y DESENCOFRADO ${nombreEnc}`, parseFloat(area.toFixed(2)), "m²"]);
                 });
                 let acero = elems.reduce((sum, e) => sum + e.resultados.pesoTotalAcero, 0);
-                if(acero > 0) csv += `${z},${t},ACERO FY=4200 KG/CM2,${acero.toFixed(2)},kg\n`;
-
+                if(acero > 0) dataGlobal.push([z, t, "ACERO FY=4200 KG/CM2", parseFloat(acero.toFixed(2)), "kg"]);
                 let curado = elems.reduce((sum, e) => sum + e.resultados.areaEncofrado, 0);
-                if(curado > 0) csv += `${z},${t},CURADO,${curado.toFixed(2)},m2\n`;
+                if(curado > 0) dataGlobal.push([z, t, "CURADO", parseFloat(curado.toFixed(2)), "m²"]);
             }
         });
     });
-    descargarCSV(csv, "Resumen_Global_Presupuesto.csv");
-}
+    let wsGlobal = XLSX.utils.aoa_to_sheet(dataGlobal);
+    autoSizeColumns(wsGlobal, dataGlobal);
+    XLSX.utils.book_append_sheet(wb, wsGlobal, "Resumen Global");
 
-function exportarExcelRecopilatorio() {
-    if(baseDatosProyecto.length === 0) { alert("No hay datos para exportar."); return; }
-    let csv = "Elemento,Zona,Tipo,Elemento Acero,Similares,Diametro,Long. Pieza (m),Desarrollo (m),Forma,Espaciamiento,N x Piso,Empalmes,Peso (kg)\n";
+    // --- HOJA 2: RESUMEN PARCIAL ---
+    let dataParcial = [["N°", "Nombre Elemento", "Tipo", "N° Elem.", "f'c", "Vol. Concreto (m³)", "Tipo Enc.", "Área Enc. (m²)", "Ø 6mm", "Ø 8mm", "Ø 1/4\"", "Ø 3/8\"", "Ø 1/2\"", "Ø 5/8\"", "Ø 3/4\"", "Ø 1\"", "Ø 1 3/8\"", "Total Acero (kg)", "Ratio (kg/m³)"]];
+    baseDatosProyecto.forEach((item, i) => {
+        dataParcial.push([
+            i+1, item.nombre, item.tipo, item.nElem, item.fc, parseFloat(item.resultados.volConcreto.toFixed(2)), item.encTipo, parseFloat(item.resultados.areaEncofrado.toFixed(2)),
+            parseFloat((item.resultados.pesosPorDiametro['6 mm']||0).toFixed(2)), parseFloat((item.resultados.pesosPorDiametro['8 mm']||0).toFixed(2)),
+            parseFloat((item.resultados.pesosPorDiametro['1/4"']||0).toFixed(2)), parseFloat((item.resultados.pesosPorDiametro['3/8"']||0).toFixed(2)),
+            parseFloat((item.resultados.pesosPorDiametro['1/2"']||0).toFixed(2)), parseFloat((item.resultados.pesosPorDiametro['5/8"']||0).toFixed(2)),
+            parseFloat((item.resultados.pesosPorDiametro['3/4"']||0).toFixed(2)), parseFloat((item.resultados.pesosPorDiametro['1"']||0).toFixed(2)),
+            parseFloat((item.resultados.pesosPorDiametro['1 3/8"']||0).toFixed(2)), parseFloat(item.resultados.pesoTotalAcero.toFixed(2)), parseFloat(item.resultados.ratio.toFixed(2))
+        ]);
+    });
+    let wsParcial = XLSX.utils.aoa_to_sheet(dataParcial);
+    autoSizeColumns(wsParcial, dataParcial);
+    XLSX.utils.book_append_sheet(wb, wsParcial, "Resumen Parcial");
+
+    // --- HOJA 3: DESPIECE DETALLADO ---
+    let dataDespiece = [["Elemento", "Zona", "Tipo", "Elemento Acero", "Similares", "Diámetro", "Long. Pieza (m)", "Desarrollo (m)", "Forma", "Espaciamiento (m)", "N° x Piso", "Empalmes", "Peso (kg)"]];
     baseDatosProyecto.forEach(item => {
         item.filas.forEach(f => {
-            let espac = f.espac === "-" || f.espac === 0 ? "-" : f.espac;
-            let numPiso = f.nombre.includes("longitudinal") ? "-" : f.numXPiso;
-            let emp = f.editableEmpalmes !== undefined ? f.editableEmpalmes : f.numEmpAuto;
-            csv += `${item.nombre},${item.zona},${item.tipo},${f.nombre},${f.similares},${f.diam},${f.longPieza.toFixed(3)},${f.desarrollo.toFixed(3)},${f.forma},${espac},${numPiso},${emp},${f.pesoCalculado.toFixed(2)}\n`;
+            dataDespiece.push([
+                item.nombre, item.zona, item.tipo, f.nombre, parseInt(f.similares), f.diam, 
+                parseFloat(f.longPieza.toFixed(3)), parseFloat(f.desarrollo.toFixed(3)), f.forma, 
+                (f.espac === "-" || f.espac === 0 ? "-" : parseFloat(f.espac)), 
+                (f.nombre.includes("longitudinal") ? "-" : parseInt(f.numXPiso)), 
+                (f.editableEmpalmes !== undefined ? parseInt(f.editableEmpalmes) : parseInt(f.numEmpAuto)), 
+                parseFloat(f.pesoCalculado.toFixed(2))
+            ]);
         });
     });
-    descargarCSV(csv, "Despiece_Detallado.csv");
+    let wsDespiece = XLSX.utils.aoa_to_sheet(dataDespiece);
+    autoSizeColumns(wsDespiece, dataDespiece);
+    XLSX.utils.book_append_sheet(wb, wsDespiece, "Despiece Editable");
+
+    // Exportar archivo final Excel
+    XLSX.writeFile(wb, "Proyecto_Metrado_Maestro.xlsx");
+}
+
+// --- FUNCIONES DE BACKUP (.JSON) ---
+function descargarBackup() {
+    if(baseDatosProyecto.length === 0) { alert("No hay datos para guardar."); return; }
+    const blob = new Blob([JSON.stringify(baseDatosProyecto, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url; link.download = "Backup_Proyecto_Metrado.json";
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+document.getElementById('backupInput').addEventListener('change', function(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            baseDatosProyecto = JSON.parse(e.target.result);
+            renderizarRecopilatorioCompleto();
+            alert("Backup cargado exitosamente.");
+        } catch (err) { alert("Error al cargar el backup. Archivo no válido."); }
+    };
+    reader.readAsText(file);
+    e.target.value = ""; // Resetear input
+});
+
+// ==========================================
+// 9. RECUPERACIÓN AUTOMÁTICA Y RESETEO
+// ==========================================
+window.onload = function() {
+    let guardado = localStorage.getItem('metradoAutoSave');
+    if (guardado) {
+        baseDatosProyecto = JSON.parse(guardado);
+        renderizarRecopilatorioCompleto();
+        console.log("Datos recuperados automáticamente.");
+    }
+};
+
+function resetearSistemaTotal() {
+    if(confirm("⚠️ ADVERTENCIA: Esto borrará toda la base de datos, el auto-guardado y dejará la aplicación como nueva. Usa esta opción si la página presenta errores después de una actualización. ¿Deseas continuar?")) {
+        localStorage.clear(); 
+        baseDatosProyecto = []; 
+        alert("Sistema formateado con éxito. La página se recargará.");
+        location.reload(); 
+    }
 }
