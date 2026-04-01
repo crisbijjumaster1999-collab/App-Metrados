@@ -4,6 +4,8 @@
 const canvas = document.getElementById("planoColumna");
 const ctx = canvas.getContext("2d");
 
+const arrayDiametros = ['6 mm', '8 mm', '12 mm', '1/4"', '3/8"', '1/2"', '5/8"', '3/4"', '1"', '1 3/8"'];
+
 let configAceros = {
     '6 mm': { peso: 0.22, empalme: 0.30, gancho135: 0.08 }, 
     '8 mm': { peso: 0.40, empalme: 0.30, gancho135: 0.10 },
@@ -30,21 +32,18 @@ let dbAutoCAD = {
 };
 let filasTabla = []; 
 
-// NAVEGACIÓN DE PESTAÑAS (Actualizada para 4 pestañas)
+// NAVEGACIÓN DE PESTAÑAS
 function cambiarPestana(idVista, idTab) {
-    // 1. Ocultar todas las vistas
     document.getElementById('vista-metrado').classList.add('vista-oculta');
     document.getElementById('vista-global').classList.add('vista-oculta');
     document.getElementById('vista-parcial').classList.add('vista-oculta');
     document.getElementById('vista-recopilatorio').classList.add('vista-oculta');
     
-    // 2. Quitar color activo de todos los botones
     document.getElementById('tab-metrado').classList.remove('activa');
     document.getElementById('tab-global').classList.remove('activa');
     document.getElementById('tab-parcial').classList.remove('activa');
     document.getElementById('tab-recopilatorio').classList.remove('activa');
     
-    // 3. Mostrar la vista seleccionada y activar su botón
     document.getElementById(idVista).classList.remove('vista-oculta');
     document.getElementById(idTab).classList.add('activa');
 }
@@ -127,7 +126,7 @@ function decodificarEtiqueta(texto, esLongitudinal) {
 }
 
 // ==========================================
-// 4. GENERACIÓN DE FILAS Y RENDERIZADO
+// 4. GENERACIÓN DE FILAS INDIVIDUALES
 // ==========================================
 function generarFilasEstructurales() {
     filasTabla = [];
@@ -141,34 +140,37 @@ function generarFilasEstructurales() {
     if(dbAutoCAD.seccion.perimetro === 0) tipoEnc = "-";
     document.getElementById("infoEncofrado").value = tipoEnc;
 
-    let gruposLong = {};
-    dbAutoCAD.aceroLong.varillas.forEach(varilla => { if (!gruposLong[varilla.texto]) { let d = decodificarEtiqueta(varilla.texto, true); if (d.cant > 0) gruposLong[varilla.texto] = d; } });
-    let contLong = 1; let keysLong = Object.keys(gruposLong);
-    for (const key of keysLong) { 
-        let d = gruposLong[key]; 
-        filasTabla.push({ nombre: "Acero longitudinal" + (keysLong.length > 1 ? ` ${contLong}` : ""), similares: d.cant, diam: d.diam, longPieza: alturaH, desarrollo: 0, forma: "-", espac: "-", numXPiso: 1, editableDesarrollo: true, editableForma: true, esEstribo: false }); 
-        contLong++; 
-    }
+    // Acero Longitudinal Desagrupado
+    let contLong = 1;
+    dbAutoCAD.aceroLong.varillas.forEach(varilla => { 
+        let d = decodificarEtiqueta(varilla.texto, true); 
+        if (d.cant > 0) { 
+            filasTabla.push({ nombre: "Acero longitudinal " + contLong, similares: d.cant, diam: d.diam, longPieza: alturaH, desarrollo: 0, forma: "-", espac: "-", numXPiso: 1, editableDesarrollo: true, editableForma: true, esEstribo: false }); 
+            contLong++; 
+        } 
+    });
 
-    function agruparYAgregar(polilineas, prefijoNombre, calcNumXPiso, calcLongPieza, esMallaVertical = false) {
-        if (polilineas.length === 0) return; let grupos = {};
-        polilineas.forEach(pol => { let d = decodificarEtiqueta(pol.texto, false); let long = calcLongPieza(pol.long, alturaH); let llave = long.toFixed(3) + "_" + d.diam;
-            if (!grupos[llave]) { grupos[llave] = { similares: 0, diam: d.diam, longPieza: long, espac: d.espac, numXPiso: d.espac > 0 ? calcNumXPiso(d.espac, pol.long, alturaLibre) : 0 }; } grupos[llave].similares += 1; 
-        });
-        let cont = 1; let keys = Object.keys(grupos);
-        for (const k of keys) {
-            let g = grupos[k]; let nombreFinal = prefijoNombre + (keys.length > 1 ? ` ${cont}` : "");
-            let isStirrup = prefijoNombre.includes("Estribo"); let des = 0;
-            if(isStirrup) { let conf = configAceros[g.diam] || { gancho135: 0 }; des = conf.gancho135 * 2; }
-            filasTabla.push({ nombre: nombreFinal, similares: g.similares, diam: g.diam, longPieza: g.longPieza, desarrollo: des, forma: "-", espac: g.espac, numXPiso: g.numXPiso, editableDesarrollo: esMallaVertical || prefijoNombre.includes("Malla transversal"), editableForma: esMallaVertical || prefijoNombre.includes("Malla transversal"), esEstribo: isStirrup });
+    // Elementos Transversales Desagrupados
+    function procesarPolilineasIndividuales(polilineas, prefijoNombre, calcNumXPiso, calcLongPieza, esMallaVertical = false) {
+        let cont = 1;
+        polilineas.forEach(pol => { 
+            let d = decodificarEtiqueta(pol.texto, false); 
+            let long = calcLongPieza(pol.long, alturaH); 
+            let isStirrup = prefijoNombre.includes("Estribo"); 
+            let des = 0;
+            if(isStirrup) { let conf = configAceros[d.diam] || { gancho135: 0 }; des = conf.gancho135 * 2; }
+            let espacReal = d.espac || 0;
+            let numPiso = espacReal > 0 ? calcNumXPiso(espacReal, pol.long, alturaLibre) : 0;
+
+            filasTabla.push({ nombre: prefijoNombre + " " + cont, similares: 1, diam: d.diam, longPieza: long, desarrollo: des, forma: "-", espac: espacReal, numXPiso: numPiso, editableDesarrollo: esMallaVertical || prefijoNombre.includes("Malla transversal"), editableForma: esMallaVertical || prefijoNombre.includes("Malla transversal"), esEstribo: isStirrup });
             cont++;
-        }
+        });
     }
 
-    agruparYAgregar(dbAutoCAD.estribos.polilineas, "Estribo", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-    agruparYAgregar(dbAutoCAD.ganchos.polilineas, "Gancho", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-    agruparYAgregar(dbAutoCAD.mallaTrans.polilineas, "Malla transversal", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-    agruparYAgregar(dbAutoCAD.mallaVert.polilineas, "Malla vertical", (esp, l, hLibre) => Math.ceil(l / esp) + 1, (l, h) => h, true);
+    procesarPolilineasIndividuales(dbAutoCAD.estribos.polilineas, "Estribo", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
+    procesarPolilineasIndividuales(dbAutoCAD.ganchos.polilineas, "Gancho", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
+    procesarPolilineasIndividuales(dbAutoCAD.mallaTrans.polilineas, "Malla transversal", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
+    procesarPolilineasIndividuales(dbAutoCAD.mallaVert.polilineas, "Malla vertical", (esp, l, hLibre) => Math.ceil(l / esp) + 1, (l, h) => h, true);
     renderizarTabla();
 }
 
@@ -204,6 +206,34 @@ function calcularElementoLogica(filas, params) {
     return result;
 }
 
+// FUNCIONES DE EDICIÓN AVANZADA
+function cambiarDiam(idx, dir) {
+    let actual = filasTabla[idx].diam;
+    let pos = arrayDiametros.indexOf(actual);
+    if (pos !== -1) {
+        let nuevaPos = pos + dir;
+        if (nuevaPos >= 0 && nuevaPos < arrayDiametros.length) { filasTabla[idx].diam = arrayDiametros[nuevaPos]; renderizarTabla(); }
+    }
+}
+function duplicarFila(idx) {
+    let copia = JSON.parse(JSON.stringify(filasTabla[idx]));
+    copia.nombre = copia.nombre + " (Copia)";
+    filasTabla.splice(idx + 1, 0, copia); renderizarTabla();
+}
+function eliminarFila(idx) {
+    if(confirm("¿Seguro que deseas eliminar esta fila?")) { filasTabla.splice(idx, 1); renderizarTabla(); }
+}
+function editarValorTabla(index, campo, valor) { 
+    if(['desarrollo', 'longPieza', 'espac', 'numXPiso'].includes(campo)) filasTabla[index][campo] = parseFloat(valor) || 0; 
+    else filasTabla[index][campo] = valor; 
+    renderizarTabla(); 
+}
+function cambiarValor(index, campo, delta, valorAuto = 0) {
+    if(campo === 'editableEmpalmes') { let actual = filasTabla[index][campo] !== undefined ? filasTabla[index][campo] : valorAuto; if (actual + delta >= 0) { filasTabla[index][campo] = actual + delta; renderizarTabla(); } } 
+    else { let actual = parseFloat(filasTabla[index][campo]) || 0; let newVal = actual + delta; if (newVal >= 0) { filasTabla[index][campo] = parseFloat(newVal.toFixed(3)); renderizarTabla(); } }
+}
+
+
 function renderizarTabla() {
     let multiplicadorGlobal = parseInt(document.getElementById("numElementos").value) || 1;
     let alturaH = parseFloat(document.getElementById("alturaTotal").value) || 3;
@@ -213,20 +243,24 @@ function renderizarTabla() {
     varCalculadas = calcularElementoLogica(filasTabla, params);
 
     let tbody = document.getElementById("tablaCuerpo"); tbody.innerHTML = "";
-    if (filasTabla.length === 0) { tbody.innerHTML = `<tr><td colspan="10" class="fila-ejemplo">Sin datos</td></tr>`; } 
+    if (filasTabla.length === 0) { tbody.innerHTML = `<tr><td colspan="11" class="fila-ejemplo">Sin datos</td></tr>`; } 
     else {
         filasTabla.forEach((f, idx) => {
-            let txtEspac = f.espac === "-" || f.espac === 0 ? "-" : f.espac.toFixed(2);
-            let txtNumPiso = f.nombre.includes("Acero longitudinal") ? "-" : f.numXPiso; 
-            let cellDesarrollo = f.editableDesarrollo ? `<input type="number" step="0.001" value="${f.desarrollo.toFixed(3)}" class="input-editable-tabla" onchange="editarValorTabla(${idx}, 'desarrollo', this.value)">` : `<span>${f.desarrollo.toFixed(3)}</span>`;
+            let cellDiam = `<div class="control-btn" style="display:flex; align-items:center; gap:2px; justify-content:center;"><button onclick="cambiarDiam(${idx}, -1)">-</button><span style="width: 45px; text-align: center; font-size: 12px;">${f.diam}</span><button onclick="cambiarDiam(${idx}, 1)">+</button></div>`;
+            let cellLong = `<input type="number" step="0.01" value="${f.longPieza.toFixed(3)}" class="input-editable-tabla" style="width: 60px; text-align: center;" onchange="editarValorTabla(${idx}, 'longPieza', this.value)">`;
+            let cellDesarrollo = f.editableDesarrollo ? `<input type="number" step="0.001" value="${f.desarrollo.toFixed(3)}" class="input-editable-tabla" style="width:50px" onchange="editarValorTabla(${idx}, 'desarrollo', this.value)">` : `<span>${f.desarrollo.toFixed(3)}</span>`;
             let cellForma = f.editableForma ? `<select class="input-editable-tabla" onchange="editarValorTabla(${idx}, 'forma', this.value)"><option value="-" ${f.forma === "-" ? "selected" : ""}>-</option><option value="L" ${f.forma === "L" ? "selected" : ""}>L</option><option value="[" ${f.forma === "[" ? "selected" : ""}>[</option><option value="|" ${f.forma === "|" ? "selected" : ""}>|</option></select>` : `<span>-</span>`;
+            let cellEspac = (f.espac === "-" || f.espac === 0) ? `<span>-</span>` : `<div class="control-btn" style="display:flex; align-items:center; gap:2px; justify-content:center;"><button onclick="cambiarValor(${idx}, 'espac', -0.05)">-</button><input type="number" step="0.01" value="${f.espac.toFixed(2)}" class="input-editable-tabla" style="width: 45px; text-align: center; margin:0; padding:2px;" onchange="editarValorTabla(${idx}, 'espac', this.value)"><button onclick="cambiarValor(${idx}, 'espac', 0.05)">+</button></div>`;
+            let cellNumPiso = (f.nombre.includes("Acero longitudinal")) ? `<span>-</span>` : `<div class="control-btn" style="display:flex; align-items:center; gap:2px; justify-content:center;"><button onclick="cambiarValor(${idx}, 'numXPiso', -1)">-</button><input type="number" step="1" value="${f.numXPiso}" class="input-editable-tabla" style="width: 35px; text-align: center; margin:0; padding:2px;" onchange="editarValorTabla(${idx}, 'numXPiso', this.value)"><button onclick="cambiarValor(${idx}, 'numXPiso', 1)">+</button></div>`;
+            let cellAcciones = `<div style="display:flex; gap:5px; justify-content:center;"><button onclick="duplicarFila(${idx})" title="Duplicar" style="background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer;">📄</button><button onclick="eliminarFila(${idx})" title="Eliminar" style="background:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer;">❌</button></div>`;
 
             tbody.innerHTML += `<tr>
                 <td style="text-align:left;">${f.nombre}</td>
                 <td><div class="control-btn"><button onclick="cambiarValor(${idx}, 'similares', -1)">-</button><span>${f.similares}</span><button onclick="cambiarValor(${idx}, 'similares', 1)">+</button></div></td>
-                <td>${f.diam}</td><td>${f.longPieza.toFixed(3)}</td><td>${cellDesarrollo}</td><td>${cellForma}</td><td>${txtEspac}</td><td>${txtNumPiso}</td>
+                <td>${cellDiam}</td><td>${cellLong}</td><td>${cellDesarrollo}</td><td>${cellForma}</td><td>${cellEspac}</td><td>${cellNumPiso}</td>
                 <td><div class="control-btn"><button onclick="cambiarValor(${idx}, 'editableEmpalmes', -1, ${f.numEmpAuto})">-</button><span>${f.editableEmpalmes !== undefined ? f.editableEmpalmes : f.numEmpAuto}</span><button onclick="cambiarValor(${idx}, 'editableEmpalmes', 1, ${f.numEmpAuto})">+</button></div></td>
                 <td><strong>${f.pesoCalculado.toFixed(2)}</strong></td>
+                <td>${cellAcciones}</td>
             </tr>`;
         });
     }
@@ -234,12 +268,6 @@ function renderizarTabla() {
     document.getElementById("res-encofrado").innerText = varCalculadas.areaEncofrado.toFixed(2);
     document.getElementById("res-acero").innerText = varCalculadas.pesoTotalAcero.toFixed(2); 
     document.getElementById("res-ratio").innerText = varCalculadas.ratio.toFixed(2);
-}
-
-function editarValorTabla(index, campo, valor) { if(campo === 'desarrollo') filasTabla[index][campo] = parseFloat(valor) || 0; else filasTabla[index][campo] = valor; renderizarTabla(); }
-function cambiarValor(index, campo, delta, valorAuto = 0) {
-    if(campo === 'editableEmpalmes') { let actual = filasTabla[index][campo] !== undefined ? filasTabla[index][campo] : valorAuto; if (actual + delta >= 0) { filasTabla[index][campo] = actual + delta; renderizarTabla(); } } 
-    else { if (filasTabla[index][campo] + delta >= 0) { filasTabla[index][campo] += delta; renderizarTabla(); } }
 }
 
 document.getElementById("alturaTotal").addEventListener("change", generarFilasEstructurales); 
@@ -323,8 +351,7 @@ function guardarEnBaseDatos() {
     };
 
     baseDatosProyecto.push(nuevoElemento);
-    limpiarDatos();
-    alert(`¡"${nuevoElemento.nombre}" guardado exitosamente en la Base de Datos!`);
+    alert(`¡"${nuevoElemento.nombre}" guardado exitosamente en la Base de Datos!\n(Tus datos siguen en pantalla por si deseas modificarlos y crear una variante).`);
     renderizarRecopilatorioCompleto();
 }
 
@@ -335,13 +362,40 @@ function editarBDEstado(elemIdx, campo, valor) {
     recalcularElementoBD(elemIdx);
 }
 
-function editarBDFila(elemIdx, filaIdx, campo, valor, delta = 0, valorAuto = 0) {
+function editarBDFila(elemIdx, filaIdx, campo, valor) {
     let f = baseDatosProyecto[elemIdx].filas[filaIdx];
-    if (campo === 'desarrollo') f[campo] = parseFloat(valor) || 0;
-    else if (campo === 'forma') f[campo] = valor;
-    else if (campo === 'editableEmpalmes') { let actual = f[campo] !== undefined ? f[campo] : valorAuto; if (actual + delta >= 0) f[campo] = actual + delta; }
-    else if (campo === 'similares') { if (f[campo] + delta >= 0) f[campo] += delta; }
+    if (['desarrollo', 'longPieza', 'espac', 'numXPiso'].includes(campo)) f[campo] = parseFloat(valor) || 0;
+    else f[campo] = valor;
     recalcularElementoBD(elemIdx);
+}
+
+function cambiarBDFilaValor(eIdx, fIdx, campo, delta, valorAuto = 0) {
+    let f = baseDatosProyecto[eIdx].filas[fIdx];
+    if(campo === 'editableEmpalmes') { 
+        let actual = f[campo] !== undefined ? f[campo] : valorAuto; 
+        if (actual + delta >= 0) f[campo] = actual + delta; 
+    } else { 
+        let actual = parseFloat(f[campo]) || 0; let newVal = actual + delta; 
+        if (newVal >= 0) f[campo] = parseFloat(newVal.toFixed(3)); 
+    }
+    recalcularElementoBD(eIdx);
+}
+
+function cambiarBDDiam(eIdx, fIdx, dir) {
+    let f = baseDatosProyecto[eIdx].filas[fIdx];
+    let pos = arrayDiametros.indexOf(f.diam);
+    if (pos !== -1) {
+        let nuevaPos = pos + dir;
+        if (nuevaPos >= 0 && nuevaPos < arrayDiametros.length) { f.diam = arrayDiametros[nuevaPos]; recalcularElementoBD(eIdx); }
+    }
+}
+function duplicarBDFila(eIdx, fIdx) {
+    let copia = JSON.parse(JSON.stringify(baseDatosProyecto[eIdx].filas[fIdx]));
+    copia.nombre = copia.nombre + " (Copia)";
+    baseDatosProyecto[eIdx].filas.splice(fIdx + 1, 0, copia); recalcularElementoBD(eIdx);
+}
+function eliminarBDFila(eIdx, fIdx) {
+    if(confirm("¿Eliminar esta fila del registro?")) { baseDatosProyecto[eIdx].filas.splice(fIdx, 1); recalcularElementoBD(eIdx); }
 }
 
 function recalcularElementoBD(elemIdx) {
@@ -430,8 +484,7 @@ function renderizarRecopilatorioHTML() {
 
     baseDatosProyecto.forEach((elem, eIdx) => {
         let fcsHTML = ["100", "210", "245", "280", "350", "420"].map(v => `<option value="${v}" ${elem.fc === v ? 'selected':''}>${v} kg/cm²</option>`).join('');
-        let encHTML = ["SIMPLE", "DOBLE", "TRIPLE"].map(v => `<option value="${v}" ${elem.encTipo === v ? 'selected':''}>${v}</option>`).join('');
-
+        
         let html = `
         <div style="border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <div style="background-color: #f8fafc; padding: 10px 15px; border-bottom: 2px solid #3b82f6;">
@@ -456,21 +509,25 @@ function renderizarRecopilatorioHTML() {
             </div>
             <div class="tabla-responsive" style="padding: 10px;">
                 <table class="tabla-dinamica">
-                    <thead><tr><th style="width:25%">Elemento de acero</th><th>N°Sim.</th><th>Ø</th><th>Long. Pieza</th><th>Desarr.(m)</th><th>Forma</th><th>@</th><th>N°x Piso</th><th>N°Emp.</th><th>Peso(kg)</th></tr></thead>
+                    <thead><tr><th style="width:20%">Elemento de acero</th><th>N°Sim.</th><th>Ø</th><th>Long. Pieza</th><th>Desarr.(m)</th><th>Forma</th><th>@</th><th>N°x Piso</th><th>N°Emp.</th><th>Peso(kg)</th><th>Acc.</th></tr></thead>
                     <tbody>`;
         
         elem.filas.forEach((f, fIdx) => {
-            let txtEspac = f.espac === "-" || f.espac === 0 ? "-" : f.espac.toFixed(2);
-            let txtNumPiso = f.nombre.includes("Acero longitudinal") ? "-" : f.numXPiso; 
-            let cellDesarrollo = f.editableDesarrollo ? `<input type="number" step="0.001" value="${f.desarrollo.toFixed(3)}" class="input-editable-tabla" onchange="editarBDFila(${eIdx}, ${fIdx}, 'desarrollo', this.value)">` : `<span>${f.desarrollo.toFixed(3)}</span>`;
+            let cellDiam = `<div class="control-btn" style="display:flex; align-items:center; gap:2px; justify-content:center;"><button onclick="cambiarBDDiam(${eIdx}, ${fIdx}, -1)">-</button><span style="width: 45px; text-align: center; font-size: 12px;">${f.diam}</span><button onclick="cambiarBDDiam(${eIdx}, ${fIdx}, 1)">+</button></div>`;
+            let cellLong = `<input type="number" step="0.01" value="${f.longPieza.toFixed(3)}" class="input-editable-tabla" style="width: 60px; text-align: center;" onchange="editarBDFila(${eIdx}, ${fIdx}, 'longPieza', this.value)">`;
+            let cellDesarrollo = f.editableDesarrollo ? `<input type="number" step="0.001" value="${f.desarrollo.toFixed(3)}" class="input-editable-tabla" style="width:50px" onchange="editarBDFila(${eIdx}, ${fIdx}, 'desarrollo', this.value)">` : `<span>${f.desarrollo.toFixed(3)}</span>`;
             let cellForma = f.editableForma ? `<select class="input-editable-tabla" onchange="editarBDFila(${eIdx}, ${fIdx}, 'forma', this.value)"><option value="-" ${f.forma === "-" ? "selected" : ""}>-</option><option value="L" ${f.forma === "L" ? "selected" : ""}>L</option><option value="[" ${f.forma === "[" ? "selected" : ""}>[</option><option value="|" ${f.forma === "|" ? "selected" : ""}>|</option></select>` : `<span>-</span>`;
+            let cellEspac = (f.espac === "-" || f.espac === 0) ? `<span>-</span>` : `<div class="control-btn" style="display:flex; align-items:center; gap:2px; justify-content:center;"><button onclick="cambiarBDFilaValor(${eIdx}, ${fIdx}, 'espac', -0.05)">-</button><input type="number" step="0.01" value="${f.espac.toFixed(2)}" class="input-editable-tabla" style="width: 45px; text-align: center; margin:0; padding:2px;" onchange="editarBDFila(${eIdx}, ${fIdx}, 'espac', this.value)"><button onclick="cambiarBDFilaValor(${eIdx}, ${fIdx}, 'espac', 0.05)">+</button></div>`;
+            let cellNumPiso = (f.nombre.includes("Acero longitudinal")) ? `<span>-</span>` : `<div class="control-btn" style="display:flex; align-items:center; gap:2px; justify-content:center;"><button onclick="cambiarBDFilaValor(${eIdx}, ${fIdx}, 'numXPiso', -1)">-</button><input type="number" step="1" value="${f.numXPiso}" class="input-editable-tabla" style="width: 35px; text-align: center; margin:0; padding:2px;" onchange="editarBDFila(${eIdx}, ${fIdx}, 'numXPiso', this.value)"><button onclick="cambiarBDFilaValor(${eIdx}, ${fIdx}, 'numXPiso', 1)">+</button></div>`;
+            let cellAcciones = `<div style="display:flex; gap:5px; justify-content:center;"><button onclick="duplicarBDFila(${eIdx}, ${fIdx})" title="Duplicar" style="background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer;">📄</button><button onclick="eliminarBDFila(${eIdx}, ${fIdx})" title="Eliminar" style="background:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer;">❌</button></div>`;
 
             html += `<tr>
                 <td style="text-align:left;">${f.nombre}</td>
-                <td><div class="control-btn"><button onclick="editarBDFila(${eIdx}, ${fIdx}, 'similares', null, -1)">-</button><span>${f.similares}</span><button onclick="editarBDFila(${eIdx}, ${fIdx}, 'similares', null, 1)">+</button></div></td>
-                <td>${f.diam}</td><td>${f.longPieza.toFixed(3)}</td><td>${cellDesarrollo}</td><td>${cellForma}</td><td>${txtEspac}</td><td>${txtNumPiso}</td>
-                <td><div class="control-btn"><button onclick="editarBDFila(${eIdx}, ${fIdx}, 'editableEmpalmes', null, -1, ${f.numEmpAuto})">-</button><span>${f.editableEmpalmes !== undefined ? f.editableEmpalmes : f.numEmpAuto}</span><button onclick="editarBDFila(${eIdx}, ${fIdx}, 'editableEmpalmes', null, 1, ${f.numEmpAuto})">+</button></div></td>
+                <td><div class="control-btn"><button onclick="cambiarBDFilaValor(${eIdx}, ${fIdx}, 'similares', -1)">-</button><span>${f.similares}</span><button onclick="cambiarBDFilaValor(${eIdx}, ${fIdx}, 'similares', 1)">+</button></div></td>
+                <td>${cellDiam}</td><td>${cellLong}</td><td>${cellDesarrollo}</td><td>${cellForma}</td><td>${cellEspac}</td><td>${cellNumPiso}</td>
+                <td><div class="control-btn"><button onclick="cambiarBDFilaValor(${eIdx}, ${fIdx}, 'editableEmpalmes', -1, ${f.numEmpAuto})">-</button><span>${f.editableEmpalmes !== undefined ? f.editableEmpalmes : f.numEmpAuto}</span><button onclick="cambiarBDFilaValor(${eIdx}, ${fIdx}, 'editableEmpalmes', 1, ${f.numEmpAuto})">+</button></div></td>
                 <td><strong>${f.pesoCalculado.toFixed(2)}</strong></td>
+                <td>${cellAcciones}</td>
             </tr>`;
         });
         
@@ -480,15 +537,14 @@ function renderizarRecopilatorioHTML() {
 }
 
 function borrarDeBD(idx) {
-    if(confirm("¿Seguro que deseas eliminar este elemento del proyecto?")) { baseDatosProyecto.splice(idx, 1); renderizarRecopilatorioCompleto(); }
+    if(confirm("¿Seguro que deseas eliminar el elemento estructural completo?")) { baseDatosProyecto.splice(idx, 1); renderizarRecopilatorioCompleto(); }
 }
 
 // ==========================================
 // 8. FUNCIONES DE EXPORTACIÓN A EXCEL
 // ==========================================
-
 function descargarCSV(contenido, nombreArchivo) {
-    const blob = new Blob(["\uFEFF" + contenido], { type: 'text/csv;charset=utf-8;' }); // \uFEFF fuerza a Excel a leer los tildes y caracteres especiales
+    const blob = new Blob(["\uFEFF" + contenido], { type: 'text/csv;charset=utf-8;' }); 
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
@@ -503,7 +559,7 @@ function exportarExcelParcial() {
     if(baseDatosProyecto.length === 0) { alert("No hay datos para exportar."); return; }
     let csv = "N,Nombre Elemento,Tipo,N Elem.,f'c,Vol. Concreto (m3),Tipo Enc.,Area Enc. (m2),Diam. 6mm (kg),Diam. 8mm (kg),Diam. 1/4 (kg),Diam. 3/8 (kg),Diam. 1/2 (kg),Diam. 5/8 (kg),Diam. 3/4 (kg),Diam. 1 (kg),Diam. 1 3/8 (kg),Total Acero (kg),Ratio (kg/m3)\n";
     baseDatosProyecto.forEach((item, i) => {
-        let fila = [ i+1, item.nombre, item.tipo, item.numElem, item.fc, item.resultados.volConcreto.toFixed(2), item.encTipo, item.resultados.areaEncofrado.toFixed(2),
+        let fila = [ i+1, item.nombre, item.tipo, item.nElem, item.fc, item.resultados.volConcreto.toFixed(2), item.encTipo, item.resultados.areaEncofrado.toFixed(2),
             (item.resultados.pesosPorDiametro['6 mm']||0).toFixed(2), (item.resultados.pesosPorDiametro['8 mm']||0).toFixed(2), (item.resultados.pesosPorDiametro['1/4"']||0).toFixed(2), (item.resultados.pesosPorDiametro['3/8"']||0).toFixed(2),
             (item.resultados.pesosPorDiametro['1/2"']||0).toFixed(2), (item.resultados.pesosPorDiametro['5/8"']||0).toFixed(2), (item.resultados.pesosPorDiametro['3/4"']||0).toFixed(2), (item.resultados.pesosPorDiametro['1"']||0).toFixed(2),
             (item.resultados.pesosPorDiametro['1 3/8"']||0).toFixed(2), item.resultados.pesoTotalAcero.toFixed(2), item.resultados.ratio.toFixed(2)

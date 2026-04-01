@@ -72,8 +72,22 @@
                 <h3>Despiece de acero por piso</h3>
                 <div class="tabla-responsive">
                     <table class="tabla-aceros tabla-dinamica">
-                        <thead><tr><th style="width: 25%">Elemento de acero</th><th>N°Sim.</th><th>Ø</th><th>Long. Pieza</th><th>Desarr.(m)</th><th>Tipo/Forma</th><th>@</th><th>N°x Piso</th><th>N°Emp.</th><th>Peso(kg)</th></tr></thead>
-                        <tbody id="tablaCuerpo"><tr><td colspan="10" class="fila-ejemplo">Importa un archivo CSV</td></tr></tbody>
+                        <thead>
+                            <tr>
+                                <th style="width: 18%">Elemento de acero</th>
+                                <th style="width: 8%">N°Sim.</th>
+                                <th style="width: 10%">Ø</th>
+                                <th style="width: 8%">Long.P.(m)</th>
+                                <th style="width: 8%">Desarr.(m)</th>
+                                <th style="width: 8%">Forma</th>
+                                <th style="width: 10%">@ (m)</th>
+                                <th style="width: 8%">N°x Piso</th>
+                                <th style="width: 8%">N°Emp.</th>
+                                <th style="width: 8%">Peso(kg)</th>
+                                <th style="width: 6%">Acc.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaCuerpo"><tr><td colspan="11" class="fila-ejemplo">Importa un archivo CSV</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -127,7 +141,7 @@
             <button class="btn-importar" style="width: auto; margin: 0; background-color: #10b981; font-size: 16px; padding: 12px 24px;" onclick="exportarExcelRecopilatorio()">📥 Exportar Despiece a Excel</button>
         </div>
         <div class="seccion-bloque" style="background-color: white; padding: 25px; border-top: 5px solid #f59e0b; min-height: 80vh;">
-            <p style="color: #64748b; margin-top: -10px; margin-bottom: 20px; font-size: 15px;">Modifica cualquier valor de los elementos importados y el sistema recalculará los totales globales automáticamente.</p>
+            <p style="color: #64748b; margin-top: -10px; margin-bottom: 20px; font-size: 15px;">Modifica, duplica o elimina cualquier valor de los elementos importados y el sistema recalculará los totales globales automáticamente.</p>
             <div id="contenedor-recopilatorio" style="display: flex; flex-direction: column; gap: 30px;">
                 <div class="fila-ejemplo" style="text-align: center;">Aún no hay elementos guardados.</div>
             </div>

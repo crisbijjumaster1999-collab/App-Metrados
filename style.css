@@ -241,7 +241,7 @@ hr {
 }
 
 /* =========================================
-   7. TABLAS DINÁMICAS (Pestaña 1 y 4)
+   7. TABLAS DINÁMICAS Y EDICIÓN
    ========================================= */
 .tabla-responsive {
     overflow-x: auto;
@@ -252,7 +252,7 @@ hr {
     border-collapse: collapse;
     font-size: 12px;
     text-align: center;
-    table-layout: fixed; 
+    table-layout: auto; /* Permite que las celdas se ajusten al contenido */
 }
 
 .tabla-dinamica th {
@@ -286,6 +286,17 @@ hr {
     font-size: 12px;
 }
 
+/* Oculta las flechas nativas de los input number */
+.input-editable-tabla[type="number"]::-webkit-inner-spin-button,
+.input-editable-tabla[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.input-editable-tabla[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Botones de + y - dentro de la tabla */
 .control-btn {
     display: flex;
     align-items: center;
@@ -294,7 +305,6 @@ hr {
 }
 
 .control-btn span {
-    width: 18px;
     font-weight: bold;
 }
 
@@ -310,8 +320,9 @@ hr {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 14px;
     padding: 0;
+    line-height: 1;
 }
 
 .control-btn button:hover {
