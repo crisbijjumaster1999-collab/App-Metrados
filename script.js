@@ -103,13 +103,16 @@ function procesarCSV(csv) {
     for (let i = 1; i < lineas.length; i++) {
         const cols = lineas[i].split(','); if (cols.length < 5) continue;
         const capa = cols[0].toUpperCase(), tipoObj = cols[1].toUpperCase(), etiqueta = cols[2];
-        const x = parseFloat(cols[3]), y = parseFloat(cols[4]), valor1 = cols[5], valor2 = cols[6], coordsExtra = cols[7] ? cols[7].trim() : "";
+        const x = parseFloat(cols[3]), y = parseFloat(cols[4]), valor1 = cols[5], valor2 = cols[6];
+        const coordsExtra = cols[7] ? cols[7].trim() : "";
+        const idEtiqueta = cols[8] ? cols[8].trim() : "-"; // NUEVO: Leemos el ID de la etiqueta
+        
         if (capa.includes("SECCI") && tipoObj === "POLILINEA") { dbAutoCAD.seccion.perimetro = parseFloat(valor1); dbAutoCAD.seccion.area = parseFloat(valor2); dbAutoCAD.seccion.coords = parsearCoordenadas(coordsExtra); }
-        else if (capa.includes("LONGITUDINAL") && tipoObj === "VARILLA") { dbAutoCAD.aceroLong.varillas.push({ x, y, texto: etiqueta }); }
-        else if (capa.includes("ESTRIBOS") && tipoObj === "POLILINEA") { dbAutoCAD.estribos.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta }); }
-        else if (capa.includes("GANCHOS") && tipoObj === "POLILINEA") { dbAutoCAD.ganchos.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta }); }
-        else if (capa.includes("MALLA TRANS") && tipoObj === "POLILINEA") { dbAutoCAD.mallaTrans.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta }); }
-        else if (capa.includes("MALLA VERT") && tipoObj === "POLILINEA") { dbAutoCAD.mallaVert.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta }); }
+        else if (capa.includes("LONGITUDINAL") && tipoObj === "VARILLA") { dbAutoCAD.aceroLong.varillas.push({ x, y, texto: etiqueta, id: idEtiqueta }); }
+        else if (capa.includes("ESTRIBOS") && tipoObj === "POLILINEA") { dbAutoCAD.estribos.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta, id: idEtiqueta }); }
+        else if (capa.includes("GANCHOS") && tipoObj === "POLILINEA") { dbAutoCAD.ganchos.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta, id: idEtiqueta }); }
+        else if (capa.includes("MALLA TRANS") && tipoObj === "POLILINEA") { dbAutoCAD.mallaTrans.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta, id: idEtiqueta }); }
+        else if (capa.includes("MALLA VERT") && tipoObj === "POLILINEA") { dbAutoCAD.mallaVert.polilineas.push({ x, y, long: parseFloat(valor1), coords: parsearCoordenadas(coordsExtra), texto: etiqueta, id: idEtiqueta }); }
     }
     dibujarEnCanvas(); generarFilasEstructurales(); 
 }
@@ -126,7 +129,7 @@ function decodificarEtiqueta(texto, esLongitudinal) {
 }
 
 // ==========================================
-// 4. GENERACIÓN DE FILAS INDIVIDUALES
+// 4. GENERACIÓN DE FILAS INDIVIDUALES Y AGRUPADAS
 // ==========================================
 function generarFilasEstructurales() {
     filasTabla = [];
@@ -140,37 +143,98 @@ function generarFilasEstructurales() {
     if(dbAutoCAD.seccion.perimetro === 0) tipoEnc = "-";
     document.getElementById("infoEncofrado").value = tipoEnc;
 
-    // Acero Longitudinal Desagrupado
-    let contLong = 1;
+    // --- 1. ACERO LONGITUDINAL (Agrupado estrictamente por Etiqueta) ---
+    let gruposLong = {};
     dbAutoCAD.aceroLong.varillas.forEach(varilla => { 
-        let d = decodificarEtiqueta(varilla.texto, true); 
-        if (d.cant > 0) { 
-            filasTabla.push({ nombre: "Acero longitudinal " + contLong, similares: d.cant, diam: d.diam, longPieza: alturaH, desarrollo: 0, forma: "-", espac: "-", numXPiso: 1, editableDesarrollo: true, editableForma: true, esEstribo: false }); 
-            contLong++; 
-        } 
+        // Si no tiene ID (huerfano), le damos uno aleatorio para que se liste solo
+        let idValido = varilla.id !== "-" ? varilla.id : "huerfano_" + Math.random(); 
+        if (!gruposLong[idValido]) gruposLong[idValido] = { texto: varilla.texto, count: 0 };
+        gruposLong[idValido].count++;
     });
 
-    // Elementos Transversales Desagrupados
-    function procesarPolilineasIndividuales(polilineas, prefijoNombre, calcNumXPiso, calcLongPieza, esMallaVertical = false) {
-        let cont = 1;
+    let contLong = 1;
+    for (let id in gruposLong) {
+        let g = gruposLong[id];
+        let d = decodificarEtiqueta(g.texto, true); 
+        if (d.cant > 0 || g.texto === "-") {
+            // Si la etiqueta dice "4 %%c 5/8", toma 4. Si no, cuenta los círculos.
+            let cantReal = d.cant > 0 ? d.cant : g.count; 
+            let diamReal = d.diam !== "-" ? d.diam : "5/8\""; // Diametro por defecto si es huérfano
+
+            filasTabla.push({ 
+                nombre: "Acero longitudinal " + contLong, 
+                similares: cantReal, 
+                diam: diamReal, 
+                longPieza: alturaH, 
+                desarrollo: 0, 
+                forma: "-", 
+                espac: "-", 
+                numXPiso: 1, 
+                editableDesarrollo: true, 
+                editableForma: true, 
+                esEstribo: false 
+            }); 
+            contLong++; 
+        }
+    }
+
+    // --- 2. ELEMENTOS TRANSVERSALES (Agrupados por ID de Etiqueta) ---
+    function agruparPolilineasPorID(polilineas, prefijoNombre, calcNumXPiso, calcLongPieza, esMallaVertical = false) {
+        if (polilineas.length === 0) return;
+        let grupos = {};
+        
         polilineas.forEach(pol => { 
             let d = decodificarEtiqueta(pol.texto, false); 
             let long = calcLongPieza(pol.long, alturaH); 
+            let espacReal = d.espac || 0;
+            
+            // LA MAGIA: Agrupamos única y exclusivamente por el ID del Multileader
+            // Si el objeto no tiene líder (huérfano), lo agrupamos por sus dimensiones como plan B.
+            let llave = pol.id !== "-" ? pol.id : (long.toFixed(3) + "_" + d.diam + "_" + espacReal); 
+            
+            if (!grupos[llave]) { 
+                let numPiso = espacReal > 0 ? calcNumXPiso(espacReal, pol.long, alturaLibre) : 0;
+                grupos[llave] = { similares: 0, diam: d.diam, longPieza: long, espac: espacReal, numXPiso: numPiso, texto: pol.texto }; 
+            } 
+            grupos[llave].similares += 1; 
+        });
+
+        let cont = 1; 
+        let keys = Object.keys(grupos);
+        // Ordenamos visualmente las filas por la longitud de la pieza
+        keys.sort((a, b) => grupos[b].longPieza - grupos[a].longPieza);
+
+        for (const k of keys) {
+            let g = grupos[k]; 
+            let nombreFinal = prefijoNombre + (keys.length > 1 ? ` ${cont}` : "");
             let isStirrup = prefijoNombre.includes("Estribo"); 
             let des = 0;
-            if(isStirrup) { let conf = configAceros[d.diam] || { gancho135: 0 }; des = conf.gancho135 * 2; }
-            let espacReal = d.espac || 0;
-            let numPiso = espacReal > 0 ? calcNumXPiso(espacReal, pol.long, alturaLibre) : 0;
-
-            filasTabla.push({ nombre: prefijoNombre + " " + cont, similares: 1, diam: d.diam, longPieza: long, desarrollo: des, forma: "-", espac: espacReal, numXPiso: numPiso, editableDesarrollo: esMallaVertical || prefijoNombre.includes("Malla transversal"), editableForma: esMallaVertical || prefijoNombre.includes("Malla transversal"), esEstribo: isStirrup });
+            let diamFinal = g.diam !== "-" ? g.diam : "3/8\""; // Diametro por defecto si es huérfano
+            
+            if(isStirrup) { let conf = configAceros[diamFinal] || { gancho135: 0 }; des = conf.gancho135 * 2; }
+            
+            filasTabla.push({ 
+                nombre: nombreFinal, 
+                similares: g.similares, 
+                diam: diamFinal, 
+                longPieza: g.longPieza, 
+                desarrollo: des, 
+                forma: "-", 
+                espac: g.espac, 
+                numXPiso: g.numXPiso, 
+                editableDesarrollo: esMallaVertical || prefijoNombre.includes("Malla transversal"), 
+                editableForma: esMallaVertical || prefijoNombre.includes("Malla transversal"), 
+                esEstribo: isStirrup 
+            });
             cont++;
-        });
+        }
     }
 
-    procesarPolilineasIndividuales(dbAutoCAD.estribos.polilineas, "Estribo", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-    procesarPolilineasIndividuales(dbAutoCAD.ganchos.polilineas, "Gancho", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-    procesarPolilineasIndividuales(dbAutoCAD.mallaTrans.polilineas, "Malla transversal", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
-    procesarPolilineasIndividuales(dbAutoCAD.mallaVert.polilineas, "Malla vertical", (esp, l, hLibre) => Math.ceil(l / esp) + 1, (l, h) => h, true);
+    agruparPolilineasPorID(dbAutoCAD.estribos.polilineas, "Estribo", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
+    agruparPolilineasPorID(dbAutoCAD.ganchos.polilineas, "Gancho", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
+    agruparPolilineasPorID(dbAutoCAD.mallaTrans.polilineas, "Malla transversal", (esp, l, hLibre) => Math.ceil(hLibre / esp) + 1, (l, h) => l);
+    agruparPolilineasPorID(dbAutoCAD.mallaVert.polilineas, "Malla vertical", (esp, l, hLibre) => Math.ceil(l / esp) + 1, (l, h) => h, true);
+    
     renderizarTabla();
 }
 
