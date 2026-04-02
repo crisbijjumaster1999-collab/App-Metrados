@@ -148,8 +148,22 @@ function parsearCoordenadas(str) {
 function decodificarEtiqueta(texto, esLongitudinal) {
     if (!texto || texto === "-") return { cant: 0, diam: "-", espac: 0 };
     texto = texto.trim();
-    if (esLongitudinal) { let partes = texto.split("%%c"); return { cant: partes.length >= 2 ? parseInt(partes[partes.length - 2].trim()) || 0 : 0, diam: partes.length >= 2 ? partes[partes.length - 1].trim() : "0" };
-    } else { let limpio = texto.replace("%%c", "").trim(); let partes = limpio.split("@"); return { diam: partes[0].trim(), espac: partes.length > 1 ? parseFloat(partes[1].trim()) : 0 }; }
+    
+    // La "i" al final de /%%c/i hace que ignore si es mayúscula o minúscula
+    if (esLongitudinal) { 
+        let partes = texto.split(/%%c/i); 
+        return { 
+            cant: partes.length >= 2 ? parseInt(partes[partes.length - 2].trim()) || 0 : 0, 
+            diam: partes.length >= 2 ? partes[partes.length - 1].trim() : "0" 
+        };
+    } else { 
+        let limpio = texto.replace(/%%c/i, "").trim(); 
+        let partes = limpio.split("@"); 
+        return { 
+            diam: partes[0].trim(), 
+            espac: partes.length > 1 ? parseFloat(partes[1].trim()) : 0 
+        }; 
+    }
 }
 
 // ==========================================
